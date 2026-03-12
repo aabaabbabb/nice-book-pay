@@ -51,7 +51,7 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         if (xdBookOrder == null) {
             throw new IllegalArgumentException("Order is null");
         }
-        XdBookYspay xdBookYspay = this.selectById(1);
+        XdBookYspay xdBookYspay = resolveYsPayConfig(xdBookOrder);
         /** 2、组装入参的数据 */
         Map<String, String> params = new HashMap<>();
         //接口名称
@@ -74,6 +74,9 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         params.put("business_code", xdBookYspay.getBusinesscode());
         try {
             String rel = xdBookYspay.getPrivatekeyfilepath();
+            if (rel == null || rel.isBlank()) {
+                throw new IllegalArgumentException("YSPay private key path is blank");
+            }
             if (rel.startsWith("/")) {
                 rel = rel.substring(1);
             }
@@ -86,6 +89,23 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             throw new RuntimeException("YSPay create order failed", e);
         }
 
+    }
+
+    private XdBookYspay resolveYsPayConfig(XdBookOrder order) {
+        XdBookYspay ysPay = null;
+        if (order != null && order.getParentid() != null) {
+            ysPay = selectByIsDefaultAndParentId(1, String.valueOf(order.getParentid()));
+        }
+        if (ysPay == null) {
+            ysPay = this.lambdaQuery()
+                    .eq(XdBookYspay::getIsDefault, 1)
+                    .last("limit 1")
+                    .one();
+        }
+        if (ysPay == null) {
+            throw new RuntimeException("未找到银盛支付配置");
+        }
+        return ysPay;
     }
 
     private String toBrowserHtml(String result) {
