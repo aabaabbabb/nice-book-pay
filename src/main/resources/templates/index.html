@@ -1,0 +1,132 @@
+﻿<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<title th:text="${order.hotelName}">Order</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<link rel="stylesheet" href="/assets/css/weui.css" />
+<link rel="stylesheet" href="/assets/css/weuix.css" />
+
+<script src="/assets/js/zepto.min.js"></script>
+<script src="/assets/js/zepto.weui.js"></script>
+<script th:inline="javascript">
+	$(function() {
+		$(document).on("click", "#pay", function() {
+			var res=$("input[name='payment_method']:checked").val();
+			if(res==0){
+				window.location.href = "/api/wechatpay/toPrepay/" + [[${order.id}]];
+			}else{
+				$("#yspayForm").submit();
+				//window.location.href = "/huifu/toPrepay/" + [[${order.id}]];
+				//window.location.href = "/aliPay/toPrepay/" + [[${order.id}]];
+			}
+		});
+		$("input[name='payment_method']").click(function(){
+			var res=$(this).val();
+			if(res==1){
+				$("#pay").attr("style","background:#108ee9");
+			}else{
+				$("#pay").removeAttr("style");
+			}
+		})
+	});
+</script>
+<style>
+.pay
+{
+	margin: 10px;
+}
+</style>
+</head>
+
+<body ontouchstart class="page-bg">
+	<form id="yspayForm" method="get" th:action="@{'/api/yspay/toPrepay/' + ${orderId}}"></form>
+	<div class="page-hd">
+		<h1 class="page-hd-title" th:text="${order.hotelName}">Hotel</h1>
+		<p class="page-hd-desc">地址：<span th:text="${order.address}">-</span></p>
+	</div>
+
+	<div class="page-bd" style="background-color: #F8F8F8">
+		<div class="weui-form-preview">
+
+			<div class="weui-panel weui-panel_access">
+				<div class="weui-panel__hd">订单详情</div>
+				<div class="weui-panel__bd">
+					<div class="weui-form-preview__bd">
+						<div class="weui-form-preview__item">
+							<label class="weui-form-preview__label">房型</label>
+							<span class="weui-form-preview__value" th:text="${order.roomName}">-</span>
+						</div>
+						<div class="weui-form-preview__item">
+							<label class="weui-form-preview__label">房间数</label>
+							<span class="weui-form-preview__value">
+								<span th:text="${order.roomNum}">0</span> 间
+							</span>
+						</div>
+						<div class="weui-form-preview__item">
+							<label class="weui-form-preview__label">入住/离店时间</label>
+							<span class="weui-form-preview__value" th:text="|${order.checkIn} - ${order.checkOut}|">-</span>
+						</div>
+						<div class="weui-form-preview__item">
+							<label class="weui-form-preview__label">姓名</label>
+							<span class="weui-form-preview__value" th:text="${order.guest}">-</span>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+
+		<div class="weui-panel" style="margin-top:0px">
+			<div class="weui-panel__hd">支付方式</div>
+			<div class="weui-panel__bd">
+				<div class="weui-cells_radio">
+			
+					<label class="weui-cell weui-check__label" for="x12">
+						<div class="weui-cell__hd">
+							<img src="/assets/images/zfb.png" alt=""
+								style="width: 20px; margin-right: 5px; display: block">
+						</div>
+						<div class="weui-cell__bd">
+							<p>支付宝</p>
+						</div>
+						<div class="weui-cell__ft">
+							<input name="payment_method" value="1" class="weui-check" id="x12" type="radio" checked="checked">
+							<span class="weui-icon-checked"></span>
+						</div>
+					</label>
+			
+					<label class="weui-cell weui-check__label" for="x11">
+						<div class="weui-cell__hd">
+							<img src="/assets/images/wx.png" alt=""
+								style="width: 20px; margin-right: 5px; display: block">
+						</div>
+						<div class="weui-cell__bd">
+							<p>微信</p>
+						</div>
+						<div class="weui-cell__ft">
+							<input class="weui-check" name="payment_method" value="0" id="x11" type="radio">
+							<span class="weui-icon-checked"></span>
+						</div>
+					</label>
+				</div>
+			</div>
+		</div>
+
+	<div class="weui-footer weui-footer_fixed-bottom">
+		<div class="page-bd-15">
+			<a th:if="${order.payState == 3}"
+				class="weui-btn weui-btn_disabled weui-btn_warn pay" >订单已经完成支付(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
+			</a>
+			<a th:if="${order.payState == 4}"
+				class="weui-btn weui-btn_disabled weui-btn_warn pay" >订单已经完成退款(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
+			</a>
+			<a th:if="${order.payState == 2 or order.payState == 1}"
+				class="weui-btn weui-btn_primary pay" href="javascript:" id="pay" style="background:#108ee9">确认支付(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
+			</a>
+		</div>
+	</div>
+	</div>
+
+</body>
+</html>

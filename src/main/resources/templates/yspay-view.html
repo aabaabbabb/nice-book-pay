@@ -1,0 +1,19 @@
+﻿<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<title>YSPay Redirect</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" th:content="'0;url=' + @{/api/yspay/raw/{id}(id=${orderId})}" />
+<style>
+body { font-family: sans-serif; padding: 24px; }
+</style>
+</head>
+<body>
+<p>Redirecting to YSPay...</p>
+<p>If nothing happens, <a th:href="@{/api/yspay/raw/{id}(id=${orderId})}">click here</a>.</p>
+<script th:inline="javascript">
+  window.location.replace([[${'/api/yspay/raw/' + orderId}]]);
+</script>
+</body>
+</html>

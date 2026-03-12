@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nicebook.nicebookpay.mapper.XdBookYspayMapper">
+
+    <resultMap id="BaseResultMap" type="com.nicebook.nicebookpay.entity.XdBookYspay">
+            <id property="id" column="id" />
+            <result property="partnerid" column="partnerId" />
+            <result property="charset" column="charset" />
+            <result property="signtype" column="signType" />
+            <result property="notifyurl" column="notifyUrl" />
+            <result property="trantype" column="tranType" />
+            <result property="version" column="version" />
+            <result property="sellerid" column="sellerId" />
+            <result property="sellername" column="sellerName" />
+            <result property="businesscode" column="businessCode" />
+            <result property="parentid" column="parentId" />
+            <result property="timeoutexpress" column="timeoutExpress" />
+            <result property="privatekeypassword" column="privateKeyPassword" />
+            <result property="privatekeyfilepath" column="privateKeyFilePath" />
+            <result property="isDefault" column="is_default" />
+            <result property="isDelete" column="is_delete" />
+            <result property="created" column="created" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,partnerId,charset,signType,notifyUrl,tranType,
+        version,sellerId,sellerName,businessCode,parentId,
+        timeoutExpress,privateKeyPassword,privateKeyFilePath,is_default,is_delete,
+        created
+    </sql>
+    <select id="selectByIsDefaultAndParentId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_yspay
+        WHERE is_default = #{isDefault}
+        AND parent_id = #{partnerid}
+        LIMIT 1
+    </select>
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_yspay
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+
+</mapper>

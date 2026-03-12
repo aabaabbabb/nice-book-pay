@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nicebook.nicebookpay.mapper.XdBookFeedbackMapper">
+
+    <resultMap id="BaseResultMap" type="com.nicebook.nicebookpay.entity.XdBookFeedback">
+            <id property="id" column="id" />
+            <result property="orderId" column="order_id" />
+            <result property="content" column="content" />
+            <result property="path" column="path" />
+            <result property="createDatetime" column="create_datetime" />
+            <result property="UName" column="u_name" />
+            <result property="aid" column="aid" />
+            <result property="messageid" column="messageId" />
+            <result property="ip" column="ip" />
+            <result property="createTime" column="create_time" />
+            <result property="alterTime" column="alter_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,order_id,content,path,create_datetime,u_name,
+        aid,messageId,ip,create_time,alter_time
+    </sql>
+
+    <insert id="insertFeedback" parameterType="com.nicebook.nicebookpay.entity.XdBookFeedback">
+        INSERT INTO xd_book_feedback (order_id, content, create_datetime, u_name, aid)
+        VALUES (#{orderId}, #{content}, #{createDatetime}, #{UName}, #{aid})
+    </insert>
+
+    <select id="selectByOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_feedback
+        WHERE order_id = #{orderid}
+    </select>
+</mapper>

@@ -1,0 +1,36 @@
+server:
+  port: 8080   # ???????
+
+spring:
+  application:
+    name: nice-book-pay
+  datasource:
+    url: jdbc:mysql://122.114.58.185:3306/book?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: admin
+    password: CycDRXd33yYdKiW2
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+
+# Mybatis Plus ??
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.nicebook.nicebookpay.entity
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.nicebook.nicebookpay.entity
+  configuration:
+    map-underscore-to-camel-case: true
+logging:
+  level:
+    root: INFO
+    org.springframework: WARN
+    org.mybatis: ERROR
+    org.apache.ibatis: ERROR
+    com.baomidou.mybatisplus: ERROR
+    org.springframework.jdbc: ERROR

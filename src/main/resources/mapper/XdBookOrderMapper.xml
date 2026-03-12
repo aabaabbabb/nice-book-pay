@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nicebook.nicebookpay.mapper.XdBookOrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.nicebook.nicebookpay.entity.XdBookOrder">
+            <id property="id" column="id" />
+            <result property="orderid" column="orderId" />
+            <result property="orderno" column="orderno" />
+            <result property="confirmationnumber" column="confirmationNumber" />
+            <result property="zhunaid" column="zhunaid" />
+            <result property="eid" column="eid" />
+            <result property="rid" column="rid" />
+            <result property="pid" column="pid" />
+            <result property="hotelName" column="hotel_name" />
+            <result property="level" column="level" />
+            <result property="address" column="address" />
+            <result property="cityId" column="city_id" />
+            <result property="roomName" column="room_name" />
+            <result property="roomnameErr" column="roomname_err" />
+            <result property="roomNum" column="room_num" />
+            <result property="roomnumReal" column="roomnum_real" />
+            <result property="checkIn" column="check_in" />
+            <result property="checkOut" column="check_out" />
+            <result property="realTm1" column="real_tm1" />
+            <result property="realTm2" column="real_tm2" />
+            <result property="timeEarly" column="time_early" />
+            <result property="timeLate" column="time_late" />
+            <result property="price" column="price" />
+            <result property="priceErr" column="price_err" />
+            <result property="totalPrice" column="total_price" />
+            <result property="payprice" column="payprice" />
+            <result property="totalMoney" column="total_money" />
+            <result property="paySum" column="pay_sum" />
+            <result property="floorprice" column="floorprice" />
+            <result property="isallpayprice" column="isallpayprice" />
+            <result property="refundprice" column="refundprice" />
+            <result property="refundedprice" column="refundedprice" />
+            <result property="payState" column="pay_state" />
+            <result property="breakfast" column="breakfast" />
+            <result property="bed" column="bed" />
+            <result property="guest" column="guest" />
+            <result property="guestErr" column="guest_err" />
+            <result property="booker" column="booker" />
+            <result property="mobile" column="mobile" />
+            <result property="bankcardid" column="bankcardid" />
+            <result property="isDelete" column="is_delete" />
+            <result property="isSend" column="is_send" />
+            <result property="isFeedback" column="is_feedback" />
+            <result property="isInvoice" column="is_invoice" />
+            <result property="state" column="state" />
+            <result property="freeRoomState" column="free_room_state" />
+            <result property="cancelresult" column="cancelResult" />
+            <result property="paymentId" column="payment_id" />
+            <result property="paymentErr" column="payment_err" />
+            <result property="fromV" column="from_v" />
+            <result property="bookurl" column="bookurl" />
+            <result property="supplierId" column="supplier_id" />
+            <result property="reservedmobile" column="reservedmobile" />
+            <result property="notes" column="notes" />
+            <result property="reqDate" column="req_date" />
+            <result property="rule" column="rule" />
+            <result property="reconColor" column="recon_color" />
+            <result property="guid" column="guid" />
+            <result property="zhunaorderid" column="zhunaorderid" />
+            <result property="accountid" column="accountId" />
+            <result property="realname" column="realname" />
+            <result property="parentid" column="parentId" />
+            <result property="created" column="created" />
+            <result property="ip" column="ip" />
+            <result property="transactionid" column="transactionid" />
+            <result property="outrefundno" column="outrefundno" />
+            <result property="eotid" column="eotId" />
+            <result property="arrivetime" column="arrivetime" />
+            <result property="rate" column="rate" />
+            <result property="commission" column="commission" />
+            <result property="mchid" column="mchId" />
+            <result property="cardno" column="cardNo" />
+            <result property="mergeid" column="mergeId" />
+            <result property="paymentMethod" column="payment_method" />
+            <result property="paymentSend" column="payment_send" />
+            <result property="bodycard" column="bodyCard" />
+            <result property="tixing" column="tixing" />
+            <result property="gaodeordernum" column="gaodeOrderNum" />
+            <result property="gaodestate" column="gaodeState" />
+            <result property="bookingaccountid" column="bookingAccountId" />
+            <result property="bookingrealname" column="bookingRealName" />
+            <result property="payer" column="payer" />
+            <result property="sellerid" column="sellerid" />
+            <result property="ret" column="ret" />
+            <result property="subMsg" column="sub_msg" />
+            <result property="sellerId" column="seller_id" />
+            <result property="orderStatus" column="order_status" />
+            <result property="aid" column="aid" />
+            <result property="customerId" column="customer_id" />
+            <result property="createTime" column="create_time" />
+            <result property="alterTime" column="alter_time" />
+            <result property="totalCost" column="total_cost" />
+            <result property="sendSms" column="send_sms" />
+            <result property="isGrabbing" column="is_grabbing" />
+            <result property="contact" column="contact" />
+            <result property="contactPhone" column="contact_phone" />
+            <result property="source" column="source" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,orderId,orderno,confirmationNumber,zhunaid,eid,
+        rid,pid,hotel_name,level,address,
+        city_id,room_name,roomname_err,room_num,roomnum_real,
+        check_in,check_out,real_tm1,real_tm2,time_early,
+        time_late,price,price_err,total_price,payprice,
+        total_money,pay_sum,floorprice,isallpayprice,refundprice,
+        refundedprice,pay_state,breakfast,bed,guest,
+        guest_err,booker,mobile,bankcardid,is_delete,
+        is_send,is_feedback,is_invoice,state,free_room_state,
+        cancelResult,payment_id,payment_err,from_v,bookurl,
+        supplier_id,reservedmobile,notes,req_date,rule,
+        recon_color,guid,zhunaorderid,accountId,realname,
+        parentId,created,ip,transactionid,outrefundno,
+        eotId,arrivetime,rate,commission,mchId,
+        cardNo,mergeId,payment_method,payment_send,bodyCard,
+        tixing,gaodeOrderNum,gaodeState,bookingAccountId,bookingRealName,
+        payer,sellerid,ret,sub_msg,seller_id,
+        order_status,aid,customer_id,create_time,alter_time,
+        total_cost,send_sms,is_grabbing,contact,contact_phone,
+        source
+    </sql>
+
+    <select id="selectByOrderId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_order
+        WHERE orderId = #{orderid}
+        LIMIT 1
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_order
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+</mapper>

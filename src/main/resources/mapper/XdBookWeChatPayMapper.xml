@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nicebook.nicebookpay.mapper.XdBookWeChatPayMapper">
+
+    <resultMap id="BaseResultMap" type="com.nicebook.nicebookpay.entity.XdBookWeChatPay">
+            <id property="id" column="id" />
+            <result property="appId" column="app_id" />
+            <result property="mchId" column="mch_id" />
+            <result property="notifyUrl" column="notify_url" />
+            <result property="mchSerialNo" column="mch_serial_no" />
+            <result property="apiV3key" column="api_v3key" />
+            <result property="packages" column="package" />
+            <result property="privateKey" column="private_key" />
+            <result property="payUrl" column="pay_url" />
+            <result property="parentid" column="parentId" />
+            <result property="isDefault" column="is_default" />
+            <result property="isDelete" column="is_delete" />
+            <result property="created" column="created" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,app_id,mch_id,notify_url,mch_serial_no,api_v3key,
+        package,private_key,pay_url,parentId,is_default,
+        is_delete,created
+    </sql>
+    <select id="selectByISDefaultAndParentId" resultType="com.nicebook.nicebookpay.entity.XdBookWeChatPay">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_we_chat_pay
+        WHERE is_default = #{isDefault}
+        AND parentId = #{partnerid}
+        LIMIT 1
+    </select>
+</mapper>
