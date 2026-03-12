@@ -1,6 +1,7 @@
 package com.nicebook.nicebookpay.controller;
 
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nicebook.nicebookpay.entity.XdBookFeedback;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
 import com.nicebook.nicebookpay.service.XdBookFeedbackService;
@@ -10,25 +11,30 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.BufferedReader;
-import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/wechatpay")
 public class WeChatController {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final int PAY_STATE_READY = 2;
+    private static final int PAY_STATE_SUCCESS = 3;
+    private static final int PAYMENT_METHOD_WECHAT = 1;
     private static final int FEEDBACK_USER_ID = 3;
     private static final String FEEDBACK_USER_NAME = "客户";
     private static final String FEEDBACK_CONTENT = "拉起微信支付";
@@ -58,7 +64,7 @@ public class WeChatController {
         }
 
         order.setIp(resolveClientIp(request));
-        recordFeedback(order);
+        recordFeedback(order, FEEDBACK_CONTENT);
 
         Map<String, String> result;
         try {
@@ -78,6 +84,61 @@ public class WeChatController {
         return redirect(target);
     }
 
+    @PostMapping(value = "/notify", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> notify(@RequestBody(required = false) String body) {
+        if (isBlank(body)) {
+            return weChatFail("通知内容为空");
+        }
+
+        try {
+            String decryptedBody = bookWeChatPayService.decryptOrder(body);
+            JsonNode node = OBJECT_MAPPER.readTree(decryptedBody);
+
+            String outTradeNo = text(node, "out_trade_no");
+            if (isBlank(outTradeNo)) {
+                return weChatFail("缺少商户订单号");
+            }
+
+            XdBookOrder order = orderService.getByOrderId(outTradeNo);
+            if (order == null && isDigits(outTradeNo)) {
+                order = orderService.getById(Integer.parseInt(outTradeNo));
+            }
+            if (order == null) {
+                return weChatFail("订单不存在");
+            }
+
+            if (Integer.valueOf(PAY_STATE_SUCCESS).equals(order.getPayState())) {
+                return weChatSuccess();
+            }
+
+            String transactionId = text(node, "transaction_id");
+            JsonNode amountNode = node.get("amount");
+            Integer payerTotal = amountNode == null || amountNode.get("payer_total") == null || amountNode.get("payer_total").isNull()
+                    ? null
+                    : amountNode.get("payer_total").asInt();
+            int outTotal = toFen(order.getPayprice());
+
+            if (payerTotal == null || payerTotal != outTotal) {
+                recordFeedback(order, "微信支付结果：支付金额错误,支付金额:" + (payerTotal == null ? "未知" : payerTotal / 100.0) + "元");
+                return weChatFail("支付金额错误");
+            }
+
+            order.setTransactionid(transactionId);
+            order.setPayState(PAY_STATE_SUCCESS);
+            order.setPaymentMethod(PAYMENT_METHOD_WECHAT);
+            boolean updated = orderService.updateById(order);
+            if (!updated) {
+                return weChatFail("订单更新失败");
+            }
+
+            recordFeedback(order, "微信支付结果：成功;收款商户号" + safe(order.getMchid()) + ",支付金额:" + payerTotal / 100.0 + "元");
+            return weChatSuccess();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return weChatFail("处理失败");
+        }
+    }
+
     private ResponseEntity<String> redirect(String url) {
         if (isBlank(url)) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("重定向地址为空");
@@ -87,7 +148,7 @@ public class WeChatController {
                 .build();
     }
 
-    private void recordFeedback(XdBookOrder order) {
+    private void recordFeedback(XdBookOrder order, String content) {
         String orderId = resolveOrderId(order);
         if (isBlank(orderId)) {
             return;
@@ -96,7 +157,7 @@ public class WeChatController {
         feedback.setCreateDatetime(new Date());
         feedback.setAid(FEEDBACK_USER_ID);
         feedback.setUName(FEEDBACK_USER_NAME);
-        feedback.setContent(FEEDBACK_CONTENT);
+        feedback.setContent(content);
         feedback.setOrderId(orderId);
         bookFeedbackService.insertFeedback(feedback);
     }
@@ -156,73 +217,57 @@ public class WeChatController {
         return id == null ? null : id.toString();
     }
 
+    private ResponseEntity<String> weChatSuccess() {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"code\":\"SUCCESS\",\"message\":\"成功\"}");
+    }
+
+    private ResponseEntity<String> weChatFail(String message) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"code\":\"FAIL\",\"message\":\"" + escapeJson(message) + "\"}");
+    }
+
+    private int toFen(Double amount) {
+        if (amount == null) {
+            throw new IllegalArgumentException("订单支付价格为空");
+        }
+        return BigDecimal.valueOf(amount)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(0, RoundingMode.HALF_UP)
+                .intValueExact();
+    }
+
+    private String text(JsonNode node, String field) {
+        if (node == null) {
+            return null;
+        }
+        JsonNode child = node.get(field);
+        return child == null || child.isNull() ? null : child.asText();
+    }
+
+    private boolean isDigits(String value) {
+        if (isBlank(value)) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            if (!Character.isDigit(value.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String escapeJson(String value) {
+        return safe(value).replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
-
-//    public void showNotify() {
-//
-//        Map<String, String> result = new HashMap<String, String>();
-//        result.put("code", "FAIL");
-//        try {
-//            BufferedReader br = getRequest().getReader();
-//            String str = null;
-//            StringBuilder builder = new StringBuilder();
-//            while ((str = br.readLine()) != null) {
-//                builder.append(str);
-//            }
-//            String body = wcsrv.decryptOrder(builder.toString());
-//            JSONObject node = JSONObject.parseObject(body);
-//
-//            String out_trade_no = node.getString("out_trade_no");
-//            Order order = osrv.getOrderById(Integer.parseInt(out_trade_no));
-//            if (order != null) {
-//
-//                String transaction_id = node.getString("transaction_id");
-//
-//                JSONObject amount = node.getJSONObject("amount");
-//                int payer_total = amount.getInteger("payer_total");
-//
-//                int out_total = (int) (order.getPayprice() * 100);
-//
-//                if (out_total == payer_total) {
-//                    order.setTransactionid(transaction_id);
-//                    order.setPaystate(DragonConstant.PAY_YES);
-//                    order.setPaymentMethod(DragonConstant.WEIXIN_PAY);
-//                    order.update();
-//                    result.put("message", "成功");
-//                    result.put("code", "SUCCESS");
-//                    fbsrv.doAddBackFeed("微信支付结果：成功;收款商户号" + order.getMchId() + ",支付金额:" + payer_total / 100 + "元",
-//                            order.getId());
-//                    redirect("/" + order.getGuid());
-//                } else {
-//                    fbsrv.doAddBackFeed("微信支付结果：支付金额错误,支付金额:" + payer_total / 100 + "元", order.getId());
-//                    result.put("message", "支付金额错误");
-//                }
-//            } else {
-//                fbsrv.doAddBackFeed("微信支付结果：订单号错误", order.getId());
-//                result.put("message", "订单号错误");
-//            }
-//        } catch (IOException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        }
-//        renderJson(result);
-//    }
-//
-//    /**
-//     * 完成支付
-//     */
-//    public void finish() {
-//        Integer id = getParaToInt();
-//        Order order = osrv.getOrderById(id);
-//        set("order", order);
-//        if (order.getPaystate() == DragonConstant.PAY_YES) {
-//            fbsrv.doAddBackFeed("微信支付完成", order.getId());
-//            render("result.html");
-//        } else {
-//            render("index.html");
-//        }
-//    }
-
 }

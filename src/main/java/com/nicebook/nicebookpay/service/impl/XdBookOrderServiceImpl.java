@@ -30,10 +30,9 @@ public class XdBookOrderServiceImpl extends ServiceImpl<XdBookOrderMapper, XdBoo
 
     @Override
     public boolean updateById(XdBookOrder order) {
-        return false;
+        if (order == null || order.getId() == null) {
+            return false;
+        }
+        return bookOrderMapper.updateById(order) > 0;
     }
 }
-
-
-
-

@@ -16,4 +16,6 @@ public interface XdBookWeChatPayService extends IService<XdBookWeChatPay> {
     XdBookWeChatPay selectByISDefaultAndParentId(Integer isDefault, String partnerId);
 
     Map<String, String> createOrder(XdBookOrder order);
+
+    String decryptOrder(String body);
 }

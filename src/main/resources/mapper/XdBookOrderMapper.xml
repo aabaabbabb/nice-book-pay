@@ -140,4 +140,29 @@
         WHERE id = #{id}
         LIMIT 1
     </select>
+
+    <update id="updateById" parameterType="com.nicebook.nicebookpay.entity.XdBookOrder">
+        UPDATE xd_book_order
+        <set>
+            <if test="orderid != null">orderId = #{orderid},</if>
+            <if test="orderno != null">orderno = #{orderno},</if>
+            <if test="confirmationnumber != null">confirmationNumber = #{confirmationnumber},</if>
+            <if test="hotelName != null">hotel_name = #{hotelName},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="roomName != null">room_name = #{roomName},</if>
+            <if test="roomNum != null">room_num = #{roomNum},</if>
+            <if test="checkIn != null">check_in = #{checkIn},</if>
+            <if test="checkOut != null">check_out = #{checkOut},</if>
+            <if test="guest != null">guest = #{guest},</if>
+            <if test="payprice != null">payprice = #{payprice},</if>
+            <if test="payState != null">pay_state = #{payState},</if>
+            <if test="ip != null">ip = #{ip},</if>
+            <if test="transactionid != null">transactionid = #{transactionid},</if>
+            <if test="mchid != null">mchId = #{mchid},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="guid != null">guid = #{guid},</if>
+            <if test="alterTime != null">alter_time = #{alterTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
 </mapper>
