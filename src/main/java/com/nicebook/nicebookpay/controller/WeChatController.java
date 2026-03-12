@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -85,9 +86,18 @@ public class WeChatController {
     }
 
     @PostMapping(value = "/notify", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> notify(@RequestBody(required = false) String body) {
+    public ResponseEntity<String> notify(
+            @RequestBody(required = false) String body,
+            @RequestHeader(value = "Wechatpay-Signature", required = false) String signature,
+            @RequestHeader(value = "Wechatpay-Timestamp", required = false) String timestamp,
+            @RequestHeader(value = "Wechatpay-Nonce", required = false) String nonce,
+            @RequestHeader(value = "Wechatpay-Serial", required = false) String serial) {
         if (isBlank(body)) {
             return weChatFail("通知内容为空");
+        }
+
+        if (!hasWeChatHeaders(signature, timestamp, nonce, serial)) {
+            return weChatFail("缺少微信支付签名头");
         }
 
         try {
@@ -137,6 +147,10 @@ public class WeChatController {
             e.printStackTrace();
             return weChatFail("处理失败");
         }
+    }
+
+    private boolean hasWeChatHeaders(String signature, String timestamp, String nonce, String serial) {
+        return !isBlank(signature) && !isBlank(timestamp) && !isBlank(nonce) && !isBlank(serial);
     }
 
     private ResponseEntity<String> redirect(String url) {
