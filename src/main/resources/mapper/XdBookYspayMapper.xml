@@ -43,6 +43,12 @@
         WHERE id = #{id}
         LIMIT 1
     </select>
+    <select id="selectDefaultOne" resultType="com.nicebook.nicebookpay.entity.XdBookYspay">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_yspay
+        WHERE is_default = #{isDefault}
+        LIMIT 1
+    </select>
 
 
 </mapper>

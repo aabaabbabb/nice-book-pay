@@ -97,10 +97,7 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             ysPay = selectByIsDefaultAndParentId(1, String.valueOf(order.getParentid()));
         }
         if (ysPay == null) {
-            ysPay = this.lambdaQuery()
-                    .eq(XdBookYspay::getIsDefault, 1)
-                    .last("limit 1")
-                    .one();
+            ysPay = bookYspayMapper.selectDefaultOne(1);
         }
         if (ysPay == null) {
             throw new RuntimeException("未找到银盛支付配置");

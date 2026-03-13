@@ -32,4 +32,11 @@
         AND parentId = #{partnerid}
         LIMIT 1
     </select>
+
+    <select id="selectDefaultOne" resultType="com.nicebook.nicebookpay.entity.XdBookWeChatPay">
+        SELECT <include refid="Base_Column_List"/>
+        FROM xd_book_we_chat_pay
+        WHERE is_default = #{isDefault}
+        LIMIT 1
+    </select>
 </mapper>

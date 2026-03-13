@@ -1,6 +1,5 @@
 package com.nicebook.nicebookpay.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
 import com.nicebook.nicebookpay.entity.XdBookWeChatPay;
@@ -184,12 +183,10 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
     private XdBookWeChatPay resolveWeChatPay(XdBookOrder order) {
         XdBookWeChatPay weChatPay = null;
         if (order != null && order.getParentid() != null) {
-            weChatPay = selectByISDefaultAndParentId(1, String.valueOf(order.getParentid()));
+            weChatPay = selectByISDefaultAndParentId(1, "2");
         }
         if (weChatPay == null) {
-            weChatPay = this.getOne(new LambdaQueryWrapper<XdBookWeChatPay>()
-                    .eq(XdBookWeChatPay::getIsDefault, 1)
-                    .last("limit 1"));
+            weChatPay = bookWeChatPayMapper.selectDefaultOne(1);
         }
         if (weChatPay == null) {
             throw new RuntimeException("未找到微信支付配置");

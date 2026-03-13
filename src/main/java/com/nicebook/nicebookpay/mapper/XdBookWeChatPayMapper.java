@@ -13,6 +13,8 @@ public interface XdBookWeChatPayMapper extends BaseMapper<XdBookWeChatPay> {
 
     XdBookWeChatPay selectByISDefaultAndParentId(Integer isDefault, String partnerid);
 
+    XdBookWeChatPay selectDefaultOne(Integer isDefault);
+
 }
 
 

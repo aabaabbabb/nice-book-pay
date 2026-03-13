@@ -15,6 +15,8 @@ public interface XdBookYspayMapper extends BaseMapper<XdBookYspay> {
 
     XdBookYspay selectByIsDefaultAndParentId(Integer isDefault,String partnerid);
 
+    XdBookYspay selectDefaultOne(Integer isDefault);
+
 }
 
 
