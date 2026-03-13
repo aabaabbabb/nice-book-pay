@@ -81,7 +81,7 @@
 
 .popup-dialog .ui-block-a , 
 .popup-dialog .ui-block-b {
-	-webkit-tap-highlight-color::rgba(0,0,0,0.1);
+	-webkit-tap-highlight-color: rgba(0,0,0,0.1);
 	width: 49.8%;
 	float: left;
 }
