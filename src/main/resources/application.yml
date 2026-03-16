@@ -1,5 +1,5 @@
 server:
-  port: 8080   # ???????
+  port: 8080
 
 spring:
   application:
@@ -16,7 +16,7 @@ spring:
       force: true
 
 
-# Mybatis Plus ??
+# Mybatis Plus
 mybatis-plus:
   mapper-locations: classpath*:mapper/*.xml
   type-aliases-package: com.nicebook.nicebookpay.entity

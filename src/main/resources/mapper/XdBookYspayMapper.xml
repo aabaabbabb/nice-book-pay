@@ -34,7 +34,7 @@
         SELECT <include refid="Base_Column_List"/>
         FROM xd_book_yspay
         WHERE is_default = #{isDefault}
-        AND parent_id = #{partnerid}
+        AND parentId = #{partnerid}
         LIMIT 1
     </select>
     <select id="selectById" resultMap="BaseResultMap">
