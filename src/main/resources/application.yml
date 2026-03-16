@@ -9,6 +9,11 @@ spring:
     username: admin
     password: CycDRXd33yYdKiW2
     driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 
 # Mybatis Plus ??
