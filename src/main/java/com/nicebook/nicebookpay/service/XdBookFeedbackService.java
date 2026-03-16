@@ -12,7 +12,7 @@ import java.util.List;
 */
 public interface XdBookFeedbackService extends IService<XdBookFeedback> {
 
-    int insertFeedback(XdBookFeedback feedback);
+    void insertFeedback(XdBookFeedback feedback);
 
     List<XdBookFeedback> selectByOrderId(String orderid);
 

@@ -60,8 +60,8 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         params.put("timestamp", DateUtil.getDateNow());
         params.put("charset", xdBookYspay.getCharset());
         params.put("sign_type", xdBookYspay.getSigntype());
-        params.put("notify_url", xdBookYspay.getNotifyurl());
-        params.put("return_url", xdBookYspay.getNotifyurl());
+        params.put("notify_url", xdBookYspay.getNotifyurl()+"/yspay/showNotify");
+        params.put("return_url", xdBookYspay.getNotifyurl()+"/yspay/showReturn");
         params.put("version", xdBookYspay.getVersion());
         params.put("tran_type", xdBookYspay.getTrantype().toString());
         params.put("out_trade_no", xdBookOrder.getOrderid());
@@ -72,6 +72,8 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         params.put("seller_name", xdBookYspay.getSellername());
         params.put("timeout_express", xdBookYspay.getTimeoutexpress());
         params.put("business_code", xdBookYspay.getBusinesscode());
+        params.put("pay_mode", "native");
+        params.put("bank_type", "1903000");
         try {
             String rel = xdBookYspay.getPrivatekeyfilepath();
             if (rel == null || rel.isBlank()) {
@@ -84,7 +86,7 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             String sign = YsOnlineSignUtils.sign(params, xdBookYspay.getPrivatekeypassword(), keyPath);
             params.put("sign", sign);
             String result = HttpClientUtil.sendPostParam(URL, StringUtil.mapToString(params));
-            return toBrowserHtml(result);
+            return toBrowserHtml(result,params);
         } catch (Exception e) {
             throw new RuntimeException("YSPay create order failed", e);
         }
@@ -105,7 +107,7 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         return ysPay;
     }
 
-    private String toBrowserHtml(String result) {
+    private String toBrowserHtml(String result,Map<String, String>  params) {
         if (result == null || result.isBlank()) {
             throw new RuntimeException("YSPay empty response");
         }
@@ -125,15 +127,34 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         if (partnerCode.isEmpty() || packageStr.isEmpty() || signature.isEmpty()) {
             return trimmed;
         }
-
-        return "<!doctype html><html><head><meta charset=\"utf-8\"><title>YSPay</title></head>"
-            + "<body onload=\"document.forms[0].submit()\">"
-            + "<form method=\"post\" action=\"" + HtmlUtils.htmlEscape(CASHIER_URL) + "\">"
-            + "<input type=\"hidden\" name=\"partnerCode\" value=\"" + HtmlUtils.htmlEscape(partnerCode) + "\"/>"
-            + "<input type=\"hidden\" name=\"packageStr\" value=\"" + HtmlUtils.htmlEscape(packageStr) + "\"/>"
-            + "<input type=\"hidden\" name=\"platform\" value=\"" + HtmlUtils.htmlEscape(platform) + "\"/>"
-            + "<input type=\"hidden\" name=\"signature\" value=\"" + HtmlUtils.htmlEscape(signature) + "\"/>"
-            + "</form></body></html>";
+        StringBuffer sbHtml=new StringBuffer("<html>");
+        sbHtml.append("<head>");
+        sbHtml.append("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />");
+        sbHtml.append("<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'/>");
+        sbHtml.append("<meta content='always' name='referrer'/>");
+        sbHtml.append("<meta name='theme-color' content='#ffffff'/>");
+        sbHtml.append("</head>");
+        sbHtml.append("<body>");
+        sbHtml.append("<form style='text-align:center;display:none;' id='topay' method='post' action='").append(URL).append("'>");
+        for (Map.Entry entry : params.entrySet()) {
+            sbHtml.append("<input type='text' name='").append(entry.getKey()).append("' value='").append(entry.getValue()).append("'/>");
+        }
+        sbHtml.append("<input type='submit'/>");
+        sbHtml.append("</form>");
+        sbHtml.append("<script>");
+        sbHtml.append("var u = navigator.userAgent;" +
+                "var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Adr') > -1;" +
+                "var isiOS = !!u.match(/\\(i[^;]+;( U;)? CPU.+Mac OS X/);   if(isiOS){" +
+                "document.forms[0].submit();" +
+                "}else{" +
+                //"document.forms[0].setAttribute('target', '_blank');" +
+                "document.forms[0].submit();" +
+                "} ");
+        sbHtml.append("</script>");
+        sbHtml.append("</body>");
+        sbHtml.append("</html>");
+        System.out.println(sbHtml);
+        return sbHtml.toString();
     }
 
     private String valueOf(Object obj) {

@@ -18,8 +18,8 @@ public class XdBookFeedbackServiceImpl extends ServiceImpl<XdBookFeedbackMapper,
     implements XdBookFeedbackService{
 
     @Override
-    public int insertFeedback(XdBookFeedback feedback) {
-        return baseMapper.insertFeedback(feedback);
+    public void insertFeedback(XdBookFeedback feedback) {
+        baseMapper.insertFeedback(feedback);
     }
 
     @Override
