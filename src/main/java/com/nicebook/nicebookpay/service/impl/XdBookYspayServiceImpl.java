@@ -11,25 +11,29 @@ import com.nicebook.nicebookpay.entity.XdBookOrder;
 import com.nicebook.nicebookpay.entity.XdBookYspay;
 import com.nicebook.nicebookpay.mapper.XdBookYspayMapper;
 import com.nicebook.nicebookpay.service.XdBookYspayService;
+import com.nicebook.nicebookpay.utils.ResourcePathUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.HtmlUtils;
 
+import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 /**
 * @author Administrator
 * @description 閽堝琛ㄣ€恱d_book_yspay銆戠殑鏁版嵁搴撴搷浣淪ervice瀹炵幇
 * @createDate 2026-03-11 14:55:16
 */
+@Slf4j
 @Service
 public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBookYspay>
     implements XdBookYspayService{
-
     public static final String URL = "https://openapi.ysepay.com/gateway.do";
     private static final String CASHIER_URL = "https://wapcashier.ysepay.com/cashier";
 
@@ -76,13 +80,15 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         params.put("bank_type", "1903000");
         try {
             String rel = xdBookYspay.getPrivatekeyfilepath();
+            log.info("数据库字段------"+rel);
             if (rel == null || rel.isBlank()) {
                 throw new IllegalArgumentException("YSPay private key path is blank");
             }
             if (rel.startsWith("/")) {
                 rel = rel.substring(1);
             }
-            String keyPath = new ClassPathResource(rel).getFile().getAbsolutePath();
+            String keyPath = ResourcePathUtil.getResourcePath(rel);
+            log.info("生成文件路径-------"+keyPath);
             String sign = YsOnlineSignUtils.sign(params, xdBookYspay.getPrivatekeypassword(), keyPath);
             params.put("sign", sign);
             String result = HttpClientUtil.sendPostParam(URL, StringUtil.mapToString(params));

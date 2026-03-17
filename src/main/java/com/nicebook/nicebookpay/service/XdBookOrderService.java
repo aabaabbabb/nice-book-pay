@@ -14,4 +14,5 @@ public interface XdBookOrderService extends IService<XdBookOrder> {
 
     XdBookOrder getById(Integer id);
     boolean updateById(XdBookOrder order);
+    int updatePaySuccess(String orderId, String transactionId);
 }

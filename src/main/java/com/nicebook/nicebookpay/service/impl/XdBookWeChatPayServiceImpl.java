@@ -6,6 +6,7 @@ import com.nicebook.nicebookpay.entity.XdBookWeChatPay;
 import com.nicebook.nicebookpay.mapper.XdBookWeChatPayMapper;
 import com.nicebook.nicebookpay.service.XdBookOrderService;
 import com.nicebook.nicebookpay.service.XdBookWeChatPayService;
+import com.nicebook.nicebookpay.utils.HotelNameCleaner;
 import com.wechat.pay.contrib.apache.httpclient.WechatPayHttpClientBuilder;
 import com.wechat.pay.contrib.apache.httpclient.auth.PrivateKeySigner;
 import com.wechat.pay.contrib.apache.httpclient.auth.Verifier;
@@ -14,6 +15,7 @@ import com.wechat.pay.contrib.apache.httpclient.auth.WechatPay2Validator;
 import com.wechat.pay.contrib.apache.httpclient.cert.CertificatesManager;
 import com.wechat.pay.contrib.apache.httpclient.util.AesUtil;
 import com.wechat.pay.contrib.apache.httpclient.util.PemUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -44,6 +46,7 @@ import java.util.Map;
  * @description Service for xd_book_we_chat_pay
  * @createDate 2026-03-11 20:06:08
  */
+@Slf4j
 @Service
 public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMapper, XdBookWeChatPay>
         implements XdBookWeChatPayService {
@@ -110,6 +113,7 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
         try (CloseableHttpClient httpClient = buildHttpClient(weChatPay);
              CloseableHttpResponse response = httpClient.execute(httpPost)) {
             String bodyAsString = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+            log.info("微信回复数据-----"+bodyAsString);
             int status = response.getStatusLine().getStatusCode();
             if (status < 200 || status >= 300) {
                 throw new RuntimeException("WeChat create order failed: HTTP " + status + ", body=" + bodyAsString);
@@ -135,7 +139,7 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
     @Override
     public String decryptOrder(String body) {
         if (isBlank(body)) {
-            throw new IllegalArgumentException("Body is empty");
+            throw new IllegalArgumentException("Body是空");
         }
         XdBookWeChatPay wxPay = resolveWeChatPay(null);
         validateWeChatPayConfig(wxPay);
@@ -215,6 +219,7 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
 
     private String buildDescription(XdBookOrder order) {
         String hotelName = order.getHotelName();
+        hotelName  = HotelNameCleaner.clean(hotelName);
         if (isBlank(hotelName)) {
             return "订单支付";
         }

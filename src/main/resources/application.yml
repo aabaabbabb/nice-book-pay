@@ -14,6 +14,12 @@ spring:
       charset: UTF-8
       enabled: true
       force: true
+  data:
+    redis:
+      host: r-2ze24myfrrmvd546iypd.redis.rds.aliyuncs.com
+      port: 6379
+      password: nice@Redis6688
+      timeout: 3000
 
 
 # Mybatis Plus
@@ -34,8 +40,9 @@ mybatis:
 logging:
   level:
     root: INFO
-    org.springframework: WARN
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.jdbc: ERROR
     org.mybatis: ERROR
     org.apache.ibatis: ERROR
     com.baomidou.mybatisplus: ERROR
-    org.springframework.jdbc: ERROR

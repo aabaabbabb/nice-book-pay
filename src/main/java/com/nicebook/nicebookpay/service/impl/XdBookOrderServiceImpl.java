@@ -35,4 +35,9 @@ public class XdBookOrderServiceImpl extends ServiceImpl<XdBookOrderMapper, XdBoo
         }
         return bookOrderMapper.updateById(order) > 0;
     }
+
+    @Override
+    public int updatePaySuccess(String orderId, String transactionId) {
+        return bookOrderMapper.updatePaySuccess(orderId,transactionId);
+    }
 }
