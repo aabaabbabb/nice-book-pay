@@ -1,6 +1,7 @@
 package com.nicebook.nicebookpay.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.nicebook.nicebookpay.config.PayConstant;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
 import com.nicebook.nicebookpay.entity.XdBookWeChatPay;
 import com.nicebook.nicebookpay.mapper.XdBookWeChatPayMapper;
@@ -268,6 +269,8 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
         if (order.getId() == null) {
             return;
         }
+        order.setPaymentId(PayConstant.WEIXIN_PAY);
+        order.setPaymentMethod(PayConstant.WEIXIN_PAY);
         order.setMchid(mchId);
         orderService.updateById(order);
     }

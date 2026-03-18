@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Response<?>> handleException(Exception ex) {
         log.error("Unhandled exception", ex);
-        return json(Response.fail(99999, "server internal error: " + ex.getClass().getSimpleName()));
+        return json(Response.fail(99999, "服务器内部错误"));
     }
 
     private ResponseEntity<Response<?>> json(Response<?> body) {

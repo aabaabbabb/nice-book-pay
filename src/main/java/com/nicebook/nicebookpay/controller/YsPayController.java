@@ -49,7 +49,7 @@ public class YsPayController {
         if (order == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
-                    .body("order not found");
+                    .body("订单不存在");
         }
         try {
             String html = srv.createOrder(order);
@@ -59,7 +59,7 @@ public class YsPayController {
         } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                     .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
-                    .body("YSPay create order failed: " + ex.getMessage());
+                    .body("银盛下单失败：" + ex.getMessage());
         }
     }
 
@@ -130,6 +130,7 @@ public class YsPayController {
 
         if (Objects.equals(order.getPayState(), PayConstant.PAY_NO) && "TRADE_SUCCESS".equals(tradeStatus)) {
             order.setPaymentMethod(PayConstant.YS_PAY);
+            order.setPaymentId(PayConstant.YS_PAY);
             order.setTransactionid(tradeNo);
             order.setPayState(PayConstant.PAY_YES);
             orderService.updateById(order);
@@ -137,8 +138,8 @@ public class YsPayController {
             XdBookFeedback feedback = new XdBookFeedback();
             feedback.setCreateDatetime(new Date());
             feedback.setAid(3);
-            feedback.setUName("customer");
-            feedback.setContent("alipay pay result: success; amount: " + totalAmount);
+            feedback.setUName("客户");
+            feedback.setContent("支付宝支付结果：成功；支付金额：" + totalAmount + "元");
             feedback.setOrderId(order.getOrderid());
             feedbackService.insertFeedback(feedback);
 

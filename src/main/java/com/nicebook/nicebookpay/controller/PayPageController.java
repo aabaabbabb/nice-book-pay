@@ -20,7 +20,7 @@ public class PayPageController {
     public String payPage(@PathVariable("orderid") String orderId, Model model) {
         XdBookOrder order = orderService.getByOrderId(orderId);
         if (order == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在");
         }
         model.addAttribute("order", order);
         model.addAttribute("orderId", orderId);

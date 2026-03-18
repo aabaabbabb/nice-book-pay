@@ -159,6 +159,7 @@
             <if test="ip != null">ip = #{ip},</if>
             <if test="transactionid != null">transactionid = #{transactionid},</if>
             <if test="mchid != null">mchId = #{mchid},</if>
+            <if test="paymentId != null">payment_id = #{paymentId},</if>
             <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
             <if test="guid != null">guid = #{guid},</if>
             <if test="alterTime != null">alter_time = #{alterTime},</if>

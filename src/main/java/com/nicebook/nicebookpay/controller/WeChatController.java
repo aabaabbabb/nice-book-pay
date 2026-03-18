@@ -42,9 +42,9 @@ public class WeChatController {
     private static final int PAY_STATE_READY = 2;
     private static final int PAY_STATE_SUCCESS = 3;
     private static final int FEEDBACK_USER_ID = 3;
-    private static final String FEEDBACK_USER_NAME = "customer";
-    private static final String FEEDBACK_START_CONTENT = "wechat pay started";
-    private static final String FEEDBACK_FINISH_CONTENT = "wechat pay finished";
+    private static final String FEEDBACK_USER_NAME = "客户";
+    private static final String FEEDBACK_START_CONTENT = "微信支付发起";
+    private static final String FEEDBACK_FINISH_CONTENT = "微信支付完成";
 
     @Autowired
     private XdBookOrderService orderService;
@@ -62,12 +62,12 @@ public class WeChatController {
     @GetMapping("/toPrepay/{id}")
     public ResponseEntity<String> toPrepay(@PathVariable("id") Integer orderId, HttpServletRequest request) {
         if (orderId == null) {
-            return ResponseEntity.badRequest().body("订单号为必填");
+            return ResponseEntity.badRequest().body("订单号不能为空");
         }
 
         XdBookOrder order = orderService.getById(orderId);
         if (order == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("未找到订单");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("订单不存在");
         }
 
         if (!Integer.valueOf(PAY_STATE_READY).equals(order.getPayState())) {
@@ -87,7 +87,7 @@ public class WeChatController {
 
         String h5Url = result == null ? null : result.get("h5_url");
         if (isBlank(h5Url)) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("微信支付网址为空");
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("微信支付链接为空");
         }
 
         String redirectUrl = buildFinishUrl(order, request);
@@ -102,7 +102,7 @@ public class WeChatController {
         String traceId = UUID.randomUUID().toString();
 
         if (isBlank(body)) {
-            return weChatFail("notify body is empty");
+            return weChatFail("回调内容为空");
         }
 
         try {
@@ -111,14 +111,14 @@ public class WeChatController {
             String orderId = node.path("out_trade_no").asText();
             String transactionId = node.path("transaction_id").asText();
             int total = node.path("amount").path("payer_total").asInt();
-            log.info("[{}] wechat payer_total={}", traceId, total);
+            log.info("[{}] 微信支付金额={}", traceId, total);
 
             int updated = orderService.updatePaySuccess(orderId, transactionId);
             if (updated == 0) {
                 log.info("[{}] 回调已处理", traceId);
                 return success();
             }
-            log.info("[{}] 付款成功订单号={}", traceId, orderId);
+            log.info("[{}] 支付成功，订单号={}", traceId, orderId);
             return success();
         } catch (Exception e) {
             log.error("[{}] 回调通知失败", traceId, e);
@@ -140,7 +140,7 @@ public class WeChatController {
     }
 
     private ResponseEntity<String> success() {
-        return ResponseEntity.ok("{\"code\":\"SUCCESS\",\"message\":\"success\"}");
+        return ResponseEntity.ok("{\"code\":\"SUCCESS\",\"message\":\"成功\"}");
     }
 
     private ResponseEntity<String> fail(String msg) {
@@ -149,7 +149,7 @@ public class WeChatController {
 
     private ResponseEntity<String> redirect(String url) {
         if (isBlank(url)) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("redirect url is empty");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("重定向地址为空");
         }
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, url)
@@ -239,7 +239,7 @@ public class WeChatController {
     private ResponseEntity<String> weChatSuccess() {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body("{\"code\":\"SUCCESS\",\"message\":\"success\"}");
+                .body("{\"code\":\"SUCCESS\",\"message\":\"成功\"}");
     }
 
     private ResponseEntity<String> weChatFail(String message) {
@@ -250,7 +250,7 @@ public class WeChatController {
 
     private int toFen(Double amount) {
         if (amount == null) {
-            throw new IllegalArgumentException("order pay price is empty");
+            throw new IllegalArgumentException("订单支付金额为空");
         }
         return BigDecimal.valueOf(amount)
                 .multiply(BigDecimal.valueOf(100))

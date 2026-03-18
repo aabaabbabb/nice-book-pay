@@ -2,11 +2,7 @@ package com.nicebook.nicebookpay.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.eptok.yspay.opensdkjava.util.DateUtil;
-import com.eptok.yspay.opensdkjava.util.HttpClientUtil;
-import com.eptok.yspay.opensdkjava.util.StringUtil;
 import com.eptok.yspay.opensdkjava.util.YsOnlineSignUtils;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
 import com.nicebook.nicebookpay.entity.XdBookYspay;
 import com.nicebook.nicebookpay.mapper.XdBookYspayMapper;
@@ -20,7 +16,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -28,7 +23,6 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         implements XdBookYspayService {
 
     public static final String URL = "https://openapi.ysepay.com/gateway.do";
-    private static final String CASHIER_URL = "https://wapcashier.ysepay.com/cashier";
 
     @Autowired
     private XdBookYspayMapper bookYspayMapper;
@@ -46,11 +40,11 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
     @Override
     public String createOrder(XdBookOrder xdBookOrder) {
         if (xdBookOrder == null) {
-            throw new IllegalArgumentException("order is null");
+            throw new IllegalArgumentException("订单为空");
         }
 
         XdBookYspay xdBookYspay = resolveYsPayConfig(xdBookOrder);
-        Map<String, String> params = new HashMap<>();
+        Map<String, String> params = new LinkedHashMap<>();
         params.put("method", "ysepay.online.wap.directpay.createbyuser");
         params.put("partner_id", xdBookYspay.getPartnerid());
         params.put("timestamp", DateUtil.getDateNow());
@@ -75,7 +69,7 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             String rel = xdBookYspay.getPrivatekeyfilepath();
             log.info("YSPay key path from db={}", rel);
             if (rel == null || rel.isBlank()) {
-                throw new IllegalArgumentException("YSPay private key path is blank");
+                throw new IllegalArgumentException("银盛私钥路径为空");
             }
             if (rel.startsWith("/")) {
                 rel = rel.substring(1);
@@ -87,15 +81,13 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             params.put("sign", sign);
 
             log.info("YSPay request params={}", sanitizeParams(params));
-            String result = HttpClientUtil.sendPostParam(URL, StringUtil.mapToString(params));
-            log.info("YSPay gateway response={}", result);
-            return toBrowserHtml(result, params);
+            return buildAutoSubmitHtml(params);
         } catch (Exception e) {
             log.error("YSPay create order failed, orderId={}, params={}",
                     xdBookOrder.getOrderid(),
                     sanitizeParams(params),
                     e);
-            throw new RuntimeException("YSPay create order failed: " + e.getMessage(), e);
+            throw new RuntimeException("银盛下单失败：" + e.getMessage(), e);
         }
     }
 
@@ -108,65 +100,33 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             ysPay = bookYspayMapper.selectDefaultOne(1);
         }
         if (ysPay == null) {
-            throw new RuntimeException("YSPay config not found");
+            throw new RuntimeException("未找到银盛支付配置");
         }
         return ysPay;
     }
 
-    private String toBrowserHtml(String result, Map<String, String> params) {
-        if (result == null || result.isBlank()) {
-            throw new RuntimeException("YSPay empty response");
-        }
-        String trimmed = result.trim();
-        if (trimmed.startsWith("<")) {
-            return trimmed;
-        }
-
-        Map<String, Object> payload = new Gson().fromJson(
-                trimmed, new TypeToken<Map<String, Object>>() {}.getType());
-
-        String partnerCode = valueOf(payload.get("partnerCode"));
-        String packageStr = valueOf(payload.get("packageStr"));
-        String platform = valueOf(payload.get("platform"));
-        String signature = valueOf(payload.get("signature"));
-
-        if (partnerCode.isEmpty() || packageStr.isEmpty() || signature.isEmpty()) {
-            return trimmed;
-        }
-
-        StringBuilder sbHtml = new StringBuilder("<html>");
-        sbHtml.append("<head>");
-        sbHtml.append("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />");
+    private String buildAutoSubmitHtml(Map<String, String> params) {
+        StringBuilder sbHtml = new StringBuilder();
+        sbHtml.append("<!doctype html>");
+        sbHtml.append("<html><head>");
+        sbHtml.append("<meta charset='utf-8' />");
         sbHtml.append("<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'/>");
-        sbHtml.append("<meta content='always' name='referrer'/>");
-        sbHtml.append("<meta name='theme-color' content='#ffffff'/>");
-        sbHtml.append("</head>");
-        sbHtml.append("<body>");
-        sbHtml.append("<form style='text-align:center;display:none;' id='topay' method='post' action='")
-                .append(URL)
-                .append("'>");
+        sbHtml.append("<meta name='viewport' content='width=device-width,initial-scale=1' />");
+        sbHtml.append("<title>银盛支付跳转</title>");
+        sbHtml.append("</head><body>");
+        sbHtml.append("<form style='display:none;' id='topay' method='post' action='").append(URL).append("'>");
         for (Map.Entry<String, String> entry : params.entrySet()) {
-            sbHtml.append("<input type='text' name='")
-                    .append(entry.getKey())
+            sbHtml.append("<input type='hidden' name='")
+                    .append(escapeHtml(entry.getKey()))
                     .append("' value='")
-                    .append(entry.getValue())
+                    .append(escapeHtml(entry.getValue()))
                     .append("'/>");
         }
-        sbHtml.append("<input type='submit'/>");
         sbHtml.append("</form>");
-        sbHtml.append("<script>");
-        sbHtml.append("var u = navigator.userAgent;");
-        sbHtml.append("var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Adr') > -1;");
-        sbHtml.append("var isiOS = !!u.match(/\\(i[^;]+;( U;)? CPU.+Mac OS X/);");
-        sbHtml.append("if(isiOS){document.forms[0].submit();}else{document.forms[0].submit();}");
-        sbHtml.append("</script>");
-        sbHtml.append("</body>");
-        sbHtml.append("</html>");
+        sbHtml.append("<p>正在跳转到银盛支付...</p>");
+        sbHtml.append("<script>document.getElementById('topay').submit();</script>");
+        sbHtml.append("</body></html>");
         return sbHtml.toString();
-    }
-
-    private String valueOf(Object obj) {
-        return obj == null ? "" : Objects.toString(obj, "");
     }
 
     private Map<String, String> sanitizeParams(Map<String, String> params) {
@@ -175,5 +135,17 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             copy.put("sign", "***");
         }
         return copy;
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("&", "&amp;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 }

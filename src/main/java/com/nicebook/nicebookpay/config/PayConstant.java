@@ -9,9 +9,9 @@ public class PayConstant {
     public static Integer YES=1;
     public static Integer NO=-1;
 
-    public static final Integer WEIXIN_PAY=0;
+    public static final Integer WEIXIN_PAY=14;
     public static final Integer ALI_PAY=1;
-    public static final Integer YS_PAY=2;
+    public static final Integer YS_PAY=13;
 
     public static Map<Integer, String> PAYMENT_METHOD_MAP = new HashMap<Integer, String>();
     static {
