@@ -142,24 +142,32 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
             throw new IllegalArgumentException("Body是空");
         }
         XdBookWeChatPay wxPay = resolveWeChatPay(null);
+        log.info("wxPay 得数据-----"+(wxPay));
         validateWeChatPayConfig(wxPay);
         try {
             AesUtil util = new AesUtil(wxPay.getApiV3key().getBytes(StandardCharsets.UTF_8));
             JsonNode node = OBJECT_MAPPER.readTree(body);
+            log.info("node的值----"+node.toString());
             JsonNode resource = node.get("resource");
+            log.info("resource的值----"+resource.toString());
             if (resource == null || resource.isNull()) {
                 throw new RuntimeException("微信通知资源缺失");
             }
             String ciphertext = text(resource, "ciphertext");
+            log.info("ciphertext的值----"+ciphertext);
             String associatedData = text(resource, "associated_data");
+            log.info("associatedData的值----"+associatedData);
             String nonce = text(resource, "nonce");
+            log.info("nonce的值----"+nonce);
             if (isBlank(ciphertext) || isBlank(nonce)) {
                 throw new RuntimeException("微信通知丢失密文或随机数");
             }
-            return util.decryptToString(
+             String str = util.decryptToString(
                     associatedData == null ? new byte[0] : associatedData.getBytes(StandardCharsets.UTF_8),
                     nonce.getBytes(StandardCharsets.UTF_8),
                     ciphertext);
+            log.info("str的值----"+str);
+            return str;
         } catch (Exception e) {
             throw new RuntimeException("微信通知解密失败", e);
         }

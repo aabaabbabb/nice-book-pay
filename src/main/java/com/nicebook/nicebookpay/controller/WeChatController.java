@@ -9,10 +9,19 @@ import com.nicebook.nicebookpay.service.XdBookWeChatPayService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -25,17 +34,17 @@ import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
-@RestController
+@Controller
 @RequestMapping("/api/wechatpay")
 public class WeChatController {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final int PAY_STATE_READY = 2;
     private static final int PAY_STATE_SUCCESS = 3;
-    private static final int PAYMENT_METHOD_WECHAT = 1;
     private static final int FEEDBACK_USER_ID = 3;
-    private static final String FEEDBACK_USER_NAME = "客户";
-    private static final String FEEDBACK_CONTENT = "拉起微信支付";
+    private static final String FEEDBACK_USER_NAME = "customer";
+    private static final String FEEDBACK_START_CONTENT = "wechat pay started";
+    private static final String FEEDBACK_FINISH_CONTENT = "wechat pay finished";
 
     @Autowired
     private XdBookOrderService orderService;
@@ -49,15 +58,16 @@ public class WeChatController {
     @Autowired
     private LockService lockService;
 
+    @ResponseBody
     @GetMapping("/toPrepay/{id}")
     public ResponseEntity<String> toPrepay(@PathVariable("id") Integer orderId, HttpServletRequest request) {
         if (orderId == null) {
-            return ResponseEntity.badRequest().body("订单号不能为空");
+            return ResponseEntity.badRequest().body("订单号为必填");
         }
 
         XdBookOrder order = orderService.getById(orderId);
         if (order == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("订单不存在");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("未找到订单");
         }
 
         if (!Integer.valueOf(PAY_STATE_READY).equals(order.getPayState())) {
@@ -65,34 +75,34 @@ public class WeChatController {
         }
 
         order.setIp(resolveClientIp(request));
-        recordFeedback(order, FEEDBACK_CONTENT);
+        recordFeedback(order, FEEDBACK_START_CONTENT);
 
         Map<String, String> result;
         try {
             result = bookWeChatPayService.createOrder(order);
         } catch (Exception ex) {
-            ex.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("微信预下单失败");
+            log.error("创建微信订单失败，订单ID={}", orderId, ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("创建微信订单失败");
         }
 
         String h5Url = result == null ? null : result.get("h5_url");
         if (isBlank(h5Url)) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("微信支付地址为空");
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("微信支付网址为空");
         }
 
-        String redirectUrl = buildRedirectUrl(result == null ? null : result.get("url"), order);
+        String redirectUrl = buildFinishUrl(order, request);
         String target = h5Url + "&redirect_url=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8);
-        log.info("锁定地址------"+target);
+        log.info("微信重定向地址={}", target);
         return redirect(target);
     }
 
+    @ResponseBody
     @PostMapping("/notify")
-    public ResponseEntity<String> notify( @RequestBody String body) {
-
+    public ResponseEntity<String> notify(@RequestBody String body) {
         String traceId = UUID.randomUUID().toString();
 
         if (isBlank(body)) {
-            return weChatFail("通知内容为空");
+            return weChatFail("notify body is empty");
         }
 
         try {
@@ -101,39 +111,36 @@ public class WeChatController {
             String orderId = node.path("out_trade_no").asText();
             String transactionId = node.path("transaction_id").asText();
             int total = node.path("amount").path("payer_total").asInt();
+            log.info("[{}] wechat payer_total={}", traceId, total);
 
-            String lockKey = "pay:lock:" + orderId;
-
-//            if (!lockService.tryLock(lockKey, traceId, 10)) {
-//                log.warn("[{}] 重复回调", traceId);
-//                return success();
-//            }
-//
-//            try {
-//                int updated = orderService.updatePaySuccess(orderId, transactionId);
-//
-//                if (updated == 0) {
-//                    log.info("[{}] 已处理（幂等）", traceId);
-//                    return success();
-//                }
-//
-//                log.info("[{}] 支付成功 orderId={}", traceId, orderId);
-//
-//                return success();
-//
-//            } finally {
-//                lockService.unlock(lockKey, traceId);
-//            }
-
+            int updated = orderService.updatePaySuccess(orderId, transactionId);
+            if (updated == 0) {
+                log.info("[{}] 回调已处理", traceId);
+                return success();
+            }
+            log.info("[{}] 付款成功订单号={}", traceId, orderId);
+            return success();
         } catch (Exception e) {
-            log.error("[{}] 回调异常", traceId, e);
-            return fail("系统异常");
+            log.error("[{}] 回调通知失败", traceId, e);
+            return fail("系统错误");
         }
-        return null;
+    }
+
+    @GetMapping("/finish")
+    public String finish(@RequestParam("id") Integer id, Model model) {
+        XdBookOrder order = orderService.getById(id);
+        model.addAttribute("order", order);
+        model.addAttribute("orderId", order == null ? String.valueOf(id) : resolveOrderId(order));
+
+        if (order != null && Integer.valueOf(PAY_STATE_SUCCESS).equals(order.getPayState())) {
+            recordFeedback(order, FEEDBACK_FINISH_CONTENT);
+        }
+
+        return "result";
     }
 
     private ResponseEntity<String> success() {
-        return ResponseEntity.ok("{\"code\":\"SUCCESS\",\"message\":\"成功\"}");
+        return ResponseEntity.ok("{\"code\":\"SUCCESS\",\"message\":\"success\"}");
     }
 
     private ResponseEntity<String> fail(String msg) {
@@ -142,7 +149,7 @@ public class WeChatController {
 
     private ResponseEntity<String> redirect(String url) {
         if (isBlank(url)) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("重定向地址为空");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("redirect url is empty");
         }
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, url)
@@ -192,18 +199,29 @@ public class WeChatController {
         return "/pay/" + orderId;
     }
 
-    private String buildRedirectUrl(String baseUrl, XdBookOrder order) {
-        String suffix = order == null ? null : order.getGuid();
-        if (isBlank(suffix)) {
-            suffix = resolveOrderId(order);
+    private String buildFinishUrl(XdBookOrder order, HttpServletRequest request) {
+        Integer id = order == null ? null : order.getId();
+        if (id == null) {
+            return "/";
         }
-        if (isBlank(baseUrl)) {
-            return isBlank(suffix) ? "/" : "/" + suffix;
+        String path = "/api/wechatpay/finish?id=" + id;
+        String baseUrl = resolveRequestBaseUrl(request);
+        return isBlank(baseUrl) ? path : baseUrl + path;
+    }
+
+    private String resolveRequestBaseUrl(HttpServletRequest request) {
+        if (request == null) {
+            return "";
         }
-        if (isBlank(suffix)) {
-            return baseUrl;
+        String scheme = request.getScheme();
+        String serverName = request.getServerName();
+        int port = request.getServerPort();
+        if (isBlank(scheme) || isBlank(serverName) || port <= 0) {
+            return "";
         }
-        return baseUrl.endsWith("/") ? baseUrl + suffix : baseUrl + "/" + suffix;
+        boolean defaultPort = ("http".equalsIgnoreCase(scheme) && port == 80)
+                || ("https".equalsIgnoreCase(scheme) && port == 443);
+        return defaultPort ? scheme + "://" + serverName : scheme + "://" + serverName + ":" + port;
     }
 
     private String resolveOrderId(XdBookOrder order) {
@@ -221,7 +239,7 @@ public class WeChatController {
     private ResponseEntity<String> weChatSuccess() {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body("{\"code\":\"SUCCESS\",\"message\":\"成功\"}");
+                .body("{\"code\":\"SUCCESS\",\"message\":\"success\"}");
     }
 
     private ResponseEntity<String> weChatFail(String message) {
@@ -232,7 +250,7 @@ public class WeChatController {
 
     private int toFen(Double amount) {
         if (amount == null) {
-            throw new IllegalArgumentException("订单支付价格为空");
+            throw new IllegalArgumentException("order pay price is empty");
         }
         return BigDecimal.valueOf(amount)
                 .multiply(BigDecimal.valueOf(100))
@@ -271,102 +289,4 @@ public class WeChatController {
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
-    @GetMapping("/finish")
-    public String finish(@RequestParam("id") Integer id, Model model) {
-
-        var order = orderService.getById(id);
-        model.addAttribute("order", order);
-
-        if (order != null && order.getPayState() == 1) {
-            XdBookFeedback feedback = new XdBookFeedback();
-            feedback.setCreateDatetime(new Date());
-            feedback.setAid(3);
-            feedback.setUName("客户");
-            feedback.setContent("微信支付完成");
-            feedback.setOrderId(order.getOrderid());
-            bookFeedbackService.insertFeedback(feedback);
-            return "result"; // 对应 result.html
-        } else {
-            return "index"; // 对应 index.html
-        }
-    }
-
-
-    private final RestTemplate restTemplate = new RestTemplate();
-    // 你的微信回调接口地址
-    private final String notifyUrl = "http://localhost:8080/api/wechatpay/notify";
-
-    /**
-     * 模拟微信支付回调
-     * @param outTradeNo 商户订单号
-     * @param totalFee 支付金额（分）
-     * @return 模拟 XML 和回调结果
-     */
-    @GetMapping(value = "/callback", produces = MediaType.APPLICATION_XML_VALUE)
-    public String mockCallback(@RequestParam(defaultValue = "20260317123456") String outTradeNo,
-                               @RequestParam(defaultValue = "100") int totalFee) {
-
-        // 生成模拟微信回调 XML
-        String xmlData = generateWeChatPayXml(outTradeNo, totalFee);
-        log.info("模拟微信回调 XML:\n{}", xmlData);
-
-        // 自动 POST 给你的回调接口
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_XML);
-            HttpEntity<String> entity = new HttpEntity<>(xmlData, headers);
-
-            ResponseEntity<String> response = restTemplate.postForEntity(notifyUrl, entity, String.class);
-            log.info("回调接口响应: {}", response.getBody());
-        } catch (Exception e) {
-            log.error("自动调用回调接口失败", e);
-        }
-
-        // 返回生成的 XML 供查看
-        return xmlData;
-    }
-
-    private String generateWeChatPayXml(String outTradeNo, int totalFee) {
-        String appid = "wx352c7bd636c836bf";
-        String attach = "pay";
-        String bankType = "OTHERS";
-        String feeType = "CNY";
-        String isSubscribe = "N";
-        String mchId = "1560775651";
-        String openid = "ob_rswc_7qgCpBH3W8ZIYH4a0LoM";
-        String resultCode = "SUCCESS";
-        String tradeType = "MWEB";
-        String transactionId = "420000249120" + System.currentTimeMillis();
-        String nonceStr = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-        String timeEnd = java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String sign = "FAKE_SIGN_FOR_TEST"; // 测试固定签名
-
-        return """
-                <xml>
-                  <appid><![CDATA[%s]]></appid>
-                  <attach><![CDATA[%s]]></attach>
-                  <bank_type><![CDATA[%s]]></bank_type>
-                  <cash_fee><![CDATA[%d]]></cash_fee>
-                  <fee_type><![CDATA[%s]]></fee_type>
-                  <is_subscribe><![CDATA[%s]]></is_subscribe>
-                  <mch_id><![CDATA[%s]]></mch_id>
-                  <nonce_str><![CDATA[%s]]></nonce_str>
-                  <openid><![CDATA[%s]]></openid>
-                  <out_trade_no><![CDATA[%s]]></out_trade_no>
-                  <result_code><![CDATA[%s]]></result_code>
-                  <return_code><![CDATA[SUCCESS]]></return_code>
-                  <sign><![CDATA[%s]]></sign>
-                  <time_end><![CDATA[%s]]></time_end>
-                  <total_fee>%d</total_fee>
-                  <trade_type><![CDATA[%s]]></trade_type>
-                  <transaction_id><![CDATA[%s]]></transaction_id>
-                </xml>
-                """.formatted(
-                appid, attach, bankType, totalFee, feeType, isSubscribe,
-                mchId, nonceStr, openid, outTradeNo, resultCode,
-                sign, timeEnd, totalFee, tradeType, transactionId
-        );
-    }
-
 }

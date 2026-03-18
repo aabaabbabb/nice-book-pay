@@ -17,10 +17,10 @@ public interface XdBookOrderMapper extends BaseMapper<XdBookOrder> {
     int updateById(XdBookOrder order);
     @Update("""
         UPDATE xd_book_order
-        SET pay_state = 1,
+        SET pay_state = 3,
             transactionid = #{transactionId}
-        WHERE order_id = #{orderId}
-        AND pay_state = 0
+        WHERE orderId = #{orderId}
+        AND pay_state = 2
     """)
     int updatePaySuccess(String orderId, String transactionId);
 }

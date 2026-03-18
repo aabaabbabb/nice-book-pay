@@ -13,19 +13,26 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Objects;
 
 @Controller
-@RequestMapping("/api/yspay")
+@RequestMapping({"/api/yspay", "/yspay"})
 public class YsPayController {
 
     @Autowired
-    public XdBookYspayService srv ;
+    public XdBookYspayService srv;
+
     @Autowired
     private XdBookOrderService orderService;
+
     @Autowired
     private XdBookFeedbackService feedbackService;
 
@@ -42,96 +49,122 @@ public class YsPayController {
         if (order == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
-                    .body("订单不存在");
+                    .body("order not found");
         }
-        String html = srv.createOrder(order);
-        html = html.replaceAll("// 加载懒加载的图片", "");
-        return ResponseEntity.ok()
-            .contentType(MediaType.valueOf("text/html;charset=UTF-8"))
-            .body(html);
+        try {
+            String html = srv.createOrder(order);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.valueOf("text/html;charset=UTF-8"))
+                    .body(html);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
+                    .body("YSPay create order failed: " + ex.getMessage());
+        }
     }
-
 
     @PostMapping("/notify")
     @ResponseBody
+    public ResponseEntity<String> notify(HttpServletRequest request) {
+        return handleNotify(request);
+    }
+
+    @PostMapping("/showNotify")
+    @ResponseBody
     public ResponseEntity<String> showNotify(HttpServletRequest request) {
+        return handleNotify(request);
+    }
+
+    @GetMapping("/showReturn")
+    public String showReturn(HttpServletRequest request, Model model) {
+        return handleReturn(request, model);
+    }
+
+    @GetMapping("/return")
+    public String returnPage(HttpServletRequest request, Model model) {
+        return handleReturn(request, model);
+    }
+
+    private ResponseEntity<String> handleNotify(HttpServletRequest request) {
         try {
-            String outTradeNo = new String(request.getParameter("out_trade_no").getBytes("ISO-8859-1"), "UTF-8");
-            String tradeNo = new String(request.getParameter("trade_no").getBytes("ISO-8859-1"), "UTF-8");
-            String tradeStatus = new String(request.getParameter("trade_status").getBytes("ISO-8859-1"), "UTF-8");
-
-            XdBookOrder order = orderService.getByOrderId(outTradeNo);
-            Double totalAmount = Double.valueOf(request.getParameter("total_amount"));
-
-            if (order != null && Objects.equals(order.getPayState(), PayConstant.PAY_NO)) {
-
-                if ("TRADE_SUCCESS".equals(tradeStatus)) {
-
-                    order.setPaymentMethod(PayConstant.YS_PAY);
-                    order.setTransactionid(tradeNo);
-                    order.setPayState(PayConstant.PAY_YES);
-
-                    orderService.updateById(order);
-
-                    XdBookFeedback feedback = new XdBookFeedback();
-                    feedback.setCreateDatetime(new Date());
-                    feedback.setAid(3);
-                    feedback.setUName("客户");
-                    feedback.setContent("支付宝支付结果：成功;收款商户号,支付金额:" + totalAmount + "元");
-                    feedback.setOrderId(order.getId().toString());
-
-                    feedbackService.insertFeedback(feedback);
-
-                    return ResponseEntity.ok()
-                            .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
-                            .body("success");
-                }
+            XdBookOrder order = handleSuccessPayment(request);
+            if (order != null) {
+                return plainText("success");
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return plainText("fail");
+    }
 
+    private String handleReturn(HttpServletRequest request, Model model) {
+        XdBookOrder order = null;
+        try {
+            order = handleSuccessPayment(request);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
-                .body("fail");
+        if (order == null) {
+            String outTradeNo = request.getParameter("out_trade_no");
+            if (outTradeNo != null && !outTradeNo.isBlank()) {
+                order = orderService.getByOrderId(decode(outTradeNo));
+            }
+        }
+
+        model.addAttribute("order", order);
+        model.addAttribute("orderId", order == null ? null : order.getOrderid());
+        return "result";
     }
 
-//    public void showReturn() {
-//        try {
-//            String out_trade_no = new String(getRequest().getParameter("out_trade_no").getBytes("ISO-8859-1"), "UTF-8");
-//            String trade_no = new String(getRequest().getParameter("trade_no").getBytes("ISO-8859-1"), "UTF-8");
-//            String trade_status=new String(getRequest().getParameter("trade_status").getBytes("ISO-8859-1"), "UTF-8");
-//            Order order = osrv.getOrderInfoByOwn(out_trade_no);
-//            Double total_amount= new Double(getRequest().getParameter("total_amount"));
-//            if(order.getPaystate() == DragonConstant.PAY_NO) {
-//                if(trade_status.equals("TRADE_SUCCESS")) {
-//                    order.setPaymentMethod(DragonConstant.YS_PAY);
-//                    order.setTransactionid(trade_no);
-//                    order.setPaystate(DragonConstant.PAY_YES);
-//                    order.update();
-//                    fbsrv.doAddBackFeed("支付宝支付结果：成功;收款商户号,支付金额:" + total_amount + "元",
-//                            order.getId());
-//                    renderText("success");
-//                    return;
-//                }
-//            }
-//        } catch (UnsupportedEncodingException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        }
-//        renderText("fail");
-//    }
+    private XdBookOrder handleSuccessPayment(HttpServletRequest request) {
+        String outTradeNo = decode(request.getParameter("out_trade_no"));
+        String tradeNo = decode(request.getParameter("trade_no"));
+        String tradeStatus = decode(request.getParameter("trade_status"));
+        Double totalAmount = parseAmount(request.getParameter("total_amount"));
 
+        XdBookOrder order = orderService.getByOrderId(outTradeNo);
+        if (order == null) {
+            return null;
+        }
 
-//    public void write(String res) {
-//        try {
-//            FileWriter writer = new FileWriter(PathKit.getRootClassPath()+"/yspay/info.log",true);
-//            writer.write(res);
-//            writer.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+        if (Objects.equals(order.getPayState(), PayConstant.PAY_NO) && "TRADE_SUCCESS".equals(tradeStatus)) {
+            order.setPaymentMethod(PayConstant.YS_PAY);
+            order.setTransactionid(tradeNo);
+            order.setPayState(PayConstant.PAY_YES);
+            orderService.updateById(order);
 
+            XdBookFeedback feedback = new XdBookFeedback();
+            feedback.setCreateDatetime(new Date());
+            feedback.setAid(3);
+            feedback.setUName("customer");
+            feedback.setContent("alipay pay result: success; amount: " + totalAmount);
+            feedback.setOrderId(order.getOrderid());
+            feedbackService.insertFeedback(feedback);
+
+            return orderService.getById(order.getId());
+        }
+
+        return order;
+    }
+
+    private ResponseEntity<String> plainText(String body) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
+                .body(body);
+    }
+
+    private String decode(String value) {
+        if (value == null) {
+            return null;
+        }
+        return new String(value.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+    }
+
+    private Double parseAmount(String value) {
+        if (value == null || value.isBlank()) {
+            return 0D;
+        }
+        return Double.valueOf(value);
+    }
 }
