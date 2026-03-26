@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.eptok.yspay.opensdkjava.util.DateUtil;
 import com.eptok.yspay.opensdkjava.util.YsOnlineSignUtils;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
-import com.nicebook.nicebookpay.entity.XdBookYspay;
-import com.nicebook.nicebookpay.mapper.XdBookYspayMapper;
+import com.nicebook.nicebookpay.entity.XdBookPaymentMethods;
+import com.nicebook.nicebookpay.mapper.XdBookPaymentMethodsMapper;
 import com.nicebook.nicebookpay.service.XdBookYspayService;
 import com.nicebook.nicebookpay.utils.ResourcePathUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -13,29 +13,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
 @Service
-public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBookYspay>
-        implements XdBookYspayService {
+public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapper, XdBookPaymentMethods>  implements XdBookYspayService {
 
     public static final String URL = "https://openapi.ysepay.com/gateway.do";
 
     @Autowired
-    private XdBookYspayMapper bookYspayMapper;
+    private XdBookPaymentMethodsMapper bookPaymentMethodsMapper;
 
-    @Override
-    public XdBookYspay selectById(Integer id) {
-        return bookYspayMapper.selectById(id);
-    }
-
-    @Override
-    public XdBookYspay selectByIsDefaultAndParentId(Integer isDefault, String partnerid) {
-        return bookYspayMapper.selectByIsDefaultAndParentId(isDefault, partnerid);
-    }
 
     @Override
     public String createOrder(XdBookOrder xdBookOrder) {
@@ -43,30 +32,31 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             throw new IllegalArgumentException("订单为空");
         }
 
-        XdBookYspay xdBookYspay = resolveYsPayConfig(xdBookOrder);
+        XdBookPaymentMethods paymentMethods = resolveYsPayConfig(xdBookOrder);
         Map<String, String> params = new LinkedHashMap<>();
         params.put("method", "ysepay.online.wap.directpay.createbyuser");
-        params.put("partner_id", xdBookYspay.getPartnerid());
+        params.put("partner_id", String.valueOf(paymentMethods.getPartnerId()));
         params.put("timestamp", DateUtil.getDateNow());
-        params.put("charset", xdBookYspay.getCharset());
-        params.put("sign_type", xdBookYspay.getSigntype());
-        params.put("notify_url", xdBookYspay.getNotifyurl() + "/yspay/showNotify");
-        params.put("return_url", xdBookYspay.getNotifyurl() + "/yspay/showReturn");
-        params.put("version", xdBookYspay.getVersion());
-        params.put("tran_type", String.valueOf(xdBookYspay.getTrantype()));
+        params.put("charset", paymentMethods.getCharSet());
+        params.put("sign_type", paymentMethods.getSignType());
+        params.put("notify_url", paymentMethods.getPaymentCallbackAddress() + "/yspay/showNotify");
+        params.put("return_url", paymentMethods.getPaymentCallbackAddress() + "/yspay/showReturn");
+        params.put("version", paymentMethods.getYsVersion());
+        params.put("tran_type", paymentMethods.getTranType());
         params.put("out_trade_no", xdBookOrder.getOrderid());
         params.put("shopdate", DateUtil.getDateFormat(new Date(), "yyyyMMdd"));
         params.put("subject", xdBookOrder.getHotelName());
-        params.put("total_amount", String.valueOf(xdBookOrder.getPayprice()));
-        params.put("seller_id", xdBookYspay.getSellerid());
-        params.put("seller_name", xdBookYspay.getSellername());
-        params.put("timeout_express", xdBookYspay.getTimeoutexpress());
-        params.put("business_code", xdBookYspay.getBusinesscode());
+//        params.put("total_amount", String.valueOf(xdBookOrder.getPayprice()));
+        params.put("total_amount", String.valueOf(xdBookOrder.getTotalPrice()));
+        params.put("seller_id", paymentMethods.getSellerId());
+        params.put("seller_name", paymentMethods.getSellerName());
+        params.put("timeout_express", paymentMethods.getTimeoutExpress());
+        params.put("business_code", paymentMethods.getBusinessCode());
         params.put("pay_mode", "native");
         params.put("bank_type", "1903000");
 
         try {
-            String rel = xdBookYspay.getPrivatekeyfilepath();
+            String rel = paymentMethods.getPrivateKeyFilePath();
             log.info("YSPay key path from db={}", rel);
             if (rel == null || rel.isBlank()) {
                 throw new IllegalArgumentException("银盛私钥路径为空");
@@ -77,7 +67,7 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
             String keyPath = ResourcePathUtil.getResourcePath(rel);
             log.info("YSPay resolved key path={}", keyPath);
 
-            String sign = YsOnlineSignUtils.sign(params, xdBookYspay.getPrivatekeypassword(), keyPath);
+            String sign = YsOnlineSignUtils.sign(params, paymentMethods.getPrivateKeyPassword(), keyPath);
             params.put("sign", sign);
 
             log.info("YSPay request params={}", sanitizeParams(params));
@@ -91,18 +81,16 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookYspayMapper, XdBoo
         }
     }
 
-    private XdBookYspay resolveYsPayConfig(XdBookOrder order) {
-        XdBookYspay ysPay = null;
+    private XdBookPaymentMethods resolveYsPayConfig(XdBookOrder order) {
+        XdBookPaymentMethods paymentMethods = null;
         if (order != null && order.getParentid() != null) {
-            ysPay = selectByIsDefaultAndParentId(1, String.valueOf(order.getParentid()));
+            paymentMethods = bookPaymentMethodsMapper.selectOneByPaymentChannelsAndStatus("2","1002" );
         }
-        if (ysPay == null) {
-            ysPay = bookYspayMapper.selectDefaultOne(1);
-        }
-        if (ysPay == null) {
+
+        if (paymentMethods == null) {
             throw new RuntimeException("未找到银盛支付配置");
         }
-        return ysPay;
+        return paymentMethods;
     }
 
     private String buildAutoSubmitHtml(Map<String, String> params) {

@@ -123,7 +123,7 @@
 
 			<div class="weui-footer weui-footer_fixed-bottom">
 				<div class="page-bd-15">
-					<a th:if="${order.payState == 3}"
+					<!--<a th:if="${order.payState == 3}"
 					   class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成支付(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
 					</a>
 					<a th:if="${order.payState == 4}"
@@ -131,6 +131,17 @@
 					</a>
 					<a th:if="${order.payState == 2 or order.payState == 1}"
 					   class="weui-btn weui-btn_primary pay" href="javascript:" id="pay" style="background:#108ee9">确认支付(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
+					</a>-->
+					<a th:if="${order.payState == 3}"
+					   class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成支付(<font size="2">￥</font><span th:text="${order.totalPrice}">0</span>)
+					</a>
+
+
+					<a th:if="${order.payState == 4}"
+					   class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成退款(<font size="2">￥</font><span th:text="${order.totalPrice}">0</span>)
+					</a>
+					<a th:if="${order.payState == 2 or order.payState == 1}"
+					   class="weui-btn weui-btn_primary pay" href="javascript:" id="pay" style="background:#108ee9">确认支付(<font size="2">￥</font><span th:text="${order.totalPrice}">0</span>)
 					</a>
 				</div>
 			</div>

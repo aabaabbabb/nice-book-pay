@@ -154,6 +154,7 @@
             <if test="checkIn != null">check_in = #{checkIn},</if>
             <if test="checkOut != null">check_out = #{checkOut},</if>
             <if test="guest != null">guest = #{guest},</if>
+            <if test="totalPrice != null">total_price = #{totalPrice},</if>
             <if test="payprice != null">payprice = #{payprice},</if>
             <if test="payState != null">pay_state = #{payState},</if>
             <if test="ip != null">ip = #{ip},</if>

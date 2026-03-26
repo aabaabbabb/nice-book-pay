@@ -3,8 +3,8 @@ package com.nicebook.nicebookpay.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.nicebook.nicebookpay.config.PayConstant;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
-import com.nicebook.nicebookpay.entity.XdBookWeChatPay;
-import com.nicebook.nicebookpay.mapper.XdBookWeChatPayMapper;
+import com.nicebook.nicebookpay.entity.XdBookPaymentMethods;
+import com.nicebook.nicebookpay.mapper.XdBookPaymentMethodsMapper;
 import com.nicebook.nicebookpay.service.XdBookOrderService;
 import com.nicebook.nicebookpay.service.XdBookWeChatPayService;
 import com.nicebook.nicebookpay.utils.HotelNameCleaner;
@@ -49,7 +49,7 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMapper, XdBookWeChatPay>
+public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapper, XdBookPaymentMethods>
         implements XdBookWeChatPayService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -57,35 +57,39 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
     private static final int DEFAULT_EXPIRE_MINUTES = 10;
 
     @Autowired
-    private XdBookWeChatPayMapper bookWeChatPayMapper;
+    private XdBookPaymentMethodsMapper bookPaymentMethodsMapper;
 
     @Autowired
     private XdBookOrderService orderService;
 
-    @Override
-    public XdBookWeChatPay selectByISDefaultAndParentId(Integer isDefault, String partnerId) {
-        return bookWeChatPayMapper.selectByISDefaultAndParentId(isDefault, partnerId);
-    }
 
     @Override
     public Map<String, String> createOrder(XdBookOrder order) {
         if (order == null) {
             throw new IllegalArgumentException("Order is null");
         }
-        XdBookWeChatPay weChatPay = resolveWeChatPay(order);
-        validateWeChatPayConfig(weChatPay);
+        XdBookPaymentMethods paymentMethods = resolveWeChatPay(order);
+        validateWeChatPayConfig(paymentMethods);
 
         String outTradeNo = resolveOutTradeNo(order);
-        int totalFen = toFen(order.getPayprice());
+//        int totalFen = toFen(order.getPayprice());
+        int totalFen = toFen(order.getTotalPrice());
         String description = buildDescription(order);
 
+
+        //        requireNonBlank(paymentMethods.getDeveloperId(), "appId");
+        //        requireNonBlank(paymentMethods.getMerchantNo(), "mchId");
+        //        requireNonBlank(paymentMethods.getMchSerialNo(), "mchSerialNo");
+        //        requireNonBlank(paymentMethods.getPublicKey(), "apiV3key");
+        //        requireNonBlank(paymentMethods.getPrivateKey(), "privateKey");
+        //        requireNonBlank(paymentMethods.getPaymentCallbackAddress(), "notifyUrl");
         ObjectNode rootNode = OBJECT_MAPPER.createObjectNode();
-        rootNode.put("appid", weChatPay.getAppId())
-                .put("mchid", weChatPay.getMchId())
+        rootNode.put("appid", paymentMethods.getDeveloperId())
+                .put("mchid", paymentMethods.getMerchantNo())
                 .put("description", description)
                 .put("out_trade_no", outTradeNo)
                 .put("time_expire", buildExpireTime())
-                .put("notify_url", buildNotifyUrl(weChatPay.getNotifyUrl()));
+                .put("notify_url", buildNotifyUrl(paymentMethods.getPaymentCallbackAddress()));
 
         ObjectNode amountNode = rootNode.putObject("amount");
         amountNode.put("total", totalFen);
@@ -96,7 +100,7 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
         ObjectNode h5Info = sceneInfo.putObject("h5_info");
         h5Info.put("type", "Wap");
         h5Info.put("app_name", description);
-        h5Info.put("app_url", weChatPay.getNotifyUrl());
+        h5Info.put("app_url", paymentMethods.getPaymentCallbackAddress());
 
         String payload;
         try {
@@ -105,13 +109,13 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
             throw new RuntimeException("微信创建订单有效载荷序列化失败", e);
         }
 
-        String requestUrl = resolveRequestUrl(weChatPay);
+        String requestUrl = resolveRequestUrl(paymentMethods);
         HttpPost httpPost = new HttpPost(requestUrl);
         httpPost.setHeader(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
         httpPost.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
         httpPost.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
 
-        try (CloseableHttpClient httpClient = buildHttpClient(weChatPay);
+        try (CloseableHttpClient httpClient = buildHttpClient(paymentMethods);
              CloseableHttpResponse response = httpClient.execute(httpPost)) {
             String bodyAsString = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
             log.info("微信回复数据-----"+bodyAsString);
@@ -126,11 +130,11 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
                 throw new RuntimeException("WeChat create order response missing h5_url");
             }
 
-            updateOrderMchId(order, weChatPay.getMchId());
+            updateOrderMchId(order, paymentMethods.getMerchantNo());
 
             Map<String, String> result = new HashMap<>();
             result.put("h5_url", h5Url);
-            result.put("url", weChatPay.getNotifyUrl());
+            result.put("url", paymentMethods.getPaymentCallbackAddress());
             return result;
         } catch (IOException e) {
             throw new RuntimeException("WeChat create order failed", e);
@@ -142,24 +146,24 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
         if (isBlank(body)) {
             throw new IllegalArgumentException("Body是空");
         }
-        XdBookWeChatPay wxPay = resolveWeChatPay(null);
-        log.info("wxPay 得数据-----"+(wxPay));
-        validateWeChatPayConfig(wxPay);
+        XdBookPaymentMethods paymentMethods = resolveWeChatPay(null);
+        log.info("wxPay 得数据-----{}", paymentMethods);
+        validateWeChatPayConfig(paymentMethods);
         try {
-            AesUtil util = new AesUtil(wxPay.getApiV3key().getBytes(StandardCharsets.UTF_8));
+            AesUtil util = new AesUtil(paymentMethods.getPublicKey().getBytes(StandardCharsets.UTF_8));
             JsonNode node = OBJECT_MAPPER.readTree(body);
-            log.info("node的值----"+node.toString());
+            log.info("node的值----{}", node.toString());
             JsonNode resource = node.get("resource");
-            log.info("resource的值----"+resource.toString());
-            if (resource == null || resource.isNull()) {
+            log.info("resource的值----{}", resource.toString());
+            if (resource.isNull()) {
                 throw new RuntimeException("微信通知资源缺失");
             }
             String ciphertext = text(resource, "ciphertext");
-            log.info("ciphertext的值----"+ciphertext);
+            log.info("ciphertext的值----{}", ciphertext);
             String associatedData = text(resource, "associated_data");
-            log.info("associatedData的值----"+associatedData);
+            log.info("associatedData的值----{}", associatedData);
             String nonce = text(resource, "nonce");
-            log.info("nonce的值----"+nonce);
+            log.info("nonce的值----{}", nonce);
             if (isBlank(ciphertext) || isBlank(nonce)) {
                 throw new RuntimeException("微信通知丢失密文或随机数");
             }
@@ -167,25 +171,25 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
                     associatedData == null ? new byte[0] : associatedData.getBytes(StandardCharsets.UTF_8),
                     nonce.getBytes(StandardCharsets.UTF_8),
                     ciphertext);
-            log.info("str的值----"+str);
+            log.info("str的值----{}", str);
             return str;
         } catch (Exception e) {
             throw new RuntimeException("微信通知解密失败", e);
         }
     }
 
-    private CloseableHttpClient buildHttpClient(XdBookWeChatPay weChatPay) {
+    private CloseableHttpClient buildHttpClient(XdBookPaymentMethods paymentMethods) {
         try {
-            PrivateKey merchantPrivateKey = PemUtil.loadPrivateKey(weChatPay.getPrivateKey());
+            PrivateKey merchantPrivateKey = PemUtil.loadPrivateKey(paymentMethods.getPrivateKey());
             CertificatesManager certificatesManager = CertificatesManager.getInstance();
             certificatesManager.putMerchant(
-                    weChatPay.getMchId(),
-                    new WechatPay2Credentials(weChatPay.getMchId(),
-                            new PrivateKeySigner(weChatPay.getMchSerialNo(), merchantPrivateKey)),
-                    weChatPay.getApiV3key().getBytes(StandardCharsets.UTF_8));
-            Verifier verifier = certificatesManager.getVerifier(weChatPay.getMchId());
+                    paymentMethods.getMerchantNo(),
+                    new WechatPay2Credentials(paymentMethods.getMerchantNo(),
+                            new PrivateKeySigner(paymentMethods.getMchSerialNo(), merchantPrivateKey)),
+                    paymentMethods.getPublicKey().getBytes(StandardCharsets.UTF_8));
+            Verifier verifier = certificatesManager.getVerifier(paymentMethods.getMerchantNo());
             return WechatPayHttpClientBuilder.create()
-                    .withMerchant(weChatPay.getMchId(), weChatPay.getMchSerialNo(), merchantPrivateKey)
+                    .withMerchant(paymentMethods.getMerchantNo(), paymentMethods.getMchSerialNo(), merchantPrivateKey)
                     .withValidator(new WechatPay2Validator(verifier))
                     .build();
         } catch (Exception e) {
@@ -193,27 +197,21 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
         }
     }
 
-    private XdBookWeChatPay resolveWeChatPay(XdBookOrder order) {
-        XdBookWeChatPay weChatPay = null;
-        if (order != null && order.getParentid() != null) {
-            weChatPay = selectByISDefaultAndParentId(1, "2");
-        }
-        if (weChatPay == null) {
-            weChatPay = bookWeChatPayMapper.selectDefaultOne(1);
-        }
-        if (weChatPay == null) {
+    private XdBookPaymentMethods resolveWeChatPay(XdBookOrder order) {
+        XdBookPaymentMethods paymentMethods = bookPaymentMethodsMapper.selectOneByPaymentChannelsAndStatus("1","1002" );
+        if (paymentMethods == null) {
             throw new RuntimeException("未找到微信支付配置");
         }
-        return weChatPay;
+        return paymentMethods;
     }
 
-    private void validateWeChatPayConfig(XdBookWeChatPay weChatPay) {
-        requireNonBlank(weChatPay.getAppId(), "appId");
-        requireNonBlank(weChatPay.getMchId(), "mchId");
-        requireNonBlank(weChatPay.getMchSerialNo(), "mchSerialNo");
-        requireNonBlank(weChatPay.getApiV3key(), "apiV3key");
-        requireNonBlank(weChatPay.getPrivateKey(), "privateKey");
-        requireNonBlank(weChatPay.getNotifyUrl(), "notifyUrl");
+    private void validateWeChatPayConfig(XdBookPaymentMethods paymentMethods) {
+        requireNonBlank(paymentMethods.getDeveloperId(), "appId");
+        requireNonBlank(paymentMethods.getMerchantNo(), "mchId");
+        requireNonBlank(paymentMethods.getMchSerialNo(), "mchSerialNo");
+        requireNonBlank(paymentMethods.getPublicKey(), "apiV3key");
+        requireNonBlank(paymentMethods.getPrivateKey(), "privateKey");
+        requireNonBlank(paymentMethods.getPaymentCallbackAddress(), "notifyUrl");
     }
 
     private String resolveOutTradeNo(XdBookOrder order) {
@@ -242,8 +240,8 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookWeChatPayMappe
                 .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
-    private String resolveRequestUrl(XdBookWeChatPay weChatPay) {
-        String payUrl = weChatPay.getPayUrl();
+    private String resolveRequestUrl(XdBookPaymentMethods paymentMethods) {
+        String payUrl = paymentMethods.getPaymentCallbackAddress();
         return isBlank(payUrl) ? WEIXIN_URL_H5 : payUrl;
     }
 

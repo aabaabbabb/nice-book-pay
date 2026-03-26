@@ -3,6 +3,7 @@ package com.nicebook.nicebookpay.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 /**
@@ -12,8 +13,8 @@ import org.apache.ibatis.annotations.Update;
 * @Entity com.nicebook.nicebookpay.gender.domain.XdBookOrder
 */
 public interface XdBookOrderMapper extends BaseMapper<XdBookOrder> {
-    XdBookOrder selectByOrderId(String orderid);
-    XdBookOrder selectById (Integer id);
+    XdBookOrder selectByOrderId(@Param("orderid") String orderid);
+    XdBookOrder selectById(@Param("id") Integer id);
     int updateById(XdBookOrder order);
     @Update("""
         UPDATE xd_book_order
@@ -22,7 +23,7 @@ public interface XdBookOrderMapper extends BaseMapper<XdBookOrder> {
         WHERE orderId = #{orderId}
         AND pay_state = 2
     """)
-    int updatePaySuccess(String orderId, String transactionId);
+    int updatePaySuccess(@Param("orderId") String orderId, @Param("transactionId") String transactionId);
 }
 
 

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nicebook.nicebookpay.mapper.XdBookPaymentMethodsMapper">
+  <resultMap id="BaseResultMap" type="com.nicebook.nicebookpay.entity.XdBookPaymentMethods">
+    <!--@mbg.generated-->
+    <!--@Table xd_book_payment_methods-->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="payment_channels" jdbcType="INTEGER" property="paymentChannels" />
+    <result column="merchant_no" jdbcType="VARCHAR" property="merchantNo" />
+    <result column="developer_id" jdbcType="VARCHAR" property="developerId" />
+    <result column="sign_type" jdbcType="VARCHAR" property="signType" />
+    <result column="payment_callback_address" jdbcType="VARCHAR" property="paymentCallbackAddress" />
+    <result column="mch_serial_no" jdbcType="VARCHAR" property="mchSerialNo" />
+    <result column="public_key" jdbcType="VARCHAR" property="publicKey" />
+    <result column="package_wx" jdbcType="VARCHAR" property="packageWx" />
+    <result column="private_key" jdbcType="VARCHAR" property="privateKey" />
+    <result column="status" jdbcType="VARCHAR" property="status" />
+    <result column="create_time" jdbcType="INTEGER" property="createTime" />
+    <result column="alter_time" jdbcType="INTEGER" property="alterTime" />
+    <result column="memo" jdbcType="VARCHAR" property="memo" />
+    <result column="partner_id" jdbcType="INTEGER" property="partnerId" />
+    <result column="char_set" jdbcType="VARCHAR" property="charSet" />
+    <result column="tran_type" jdbcType="VARCHAR" property="tranType" />
+    <result column="ys_version" jdbcType="VARCHAR" property="ysVersion" />
+    <result column="seller_id" jdbcType="VARCHAR" property="sellerId" />
+    <result column="seller_name" jdbcType="VARCHAR" property="sellerName" />
+    <result column="business_code" jdbcType="VARCHAR" property="businessCode" />
+    <result column="parent_id" jdbcType="INTEGER" property="parentId" />
+    <result column="timeout_express" jdbcType="VARCHAR" property="timeoutExpress" />
+    <result column="private_key_password" jdbcType="VARCHAR" property="privateKeyPassword" />
+    <result column="private_key_file_path" jdbcType="VARCHAR" property="privateKeyFilePath" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, payment_channels, merchant_no, developer_id, sign_type, payment_callback_address,
+    mch_serial_no, public_key, package_wx, private_key, `status`, create_time, alter_time, 
+    memo, partner_id, char_set, tran_type, ys_version, seller_id, seller_name, business_code, 
+    parent_id, timeout_express, private_key_password, private_key_file_path
+  </sql>
+
+  <select id="selectOneByPaymentChannelsAndStatus" resultMap="BaseResultMap">
+      SELECT <include refid="Base_Column_List"/>
+      FROM xd_book_payment_methods
+      WHERE payment_channels = #{paymentChannels}
+        AND status = #{status}
+      LIMIT 1
+  </select>
+</mapper>

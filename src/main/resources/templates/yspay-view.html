@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 <meta charset="utf-8">
-<title>银盛支付跳转</title>
+<title>支付宝支付跳转</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" th:content="'0;url=' + @{/api/yspay/raw/{id}(id=${orderId})}" />
 <style>
@@ -10,7 +10,7 @@ body { font-family: sans-serif; padding: 24px; }
 </style>
 </head>
 <body>
-<p>正在跳转到银盛支付...</p>
+<p>正在跳转到支付宝支付...</p>
 <p>如果没有自动跳转，请<a th:href="@{/api/yspay/raw/{id}(id=${orderId})}">点击这里</a>继续。</p>
 <script th:inline="javascript">
   window.location.replace([[${'/api/yspay/raw/' + orderId}]]);
