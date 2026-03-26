@@ -81,7 +81,7 @@ public class WeChatController {
         try {
             result = bookWeChatPayService.createOrder(order);
         } catch (Exception ex) {
-            log.error("创建微信订单失败，订单ID={}", orderId, ex);
+            log.error("创建微信订单失败，订单ID={}", order.getOrderid(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("创建微信订单失败");
         }
 
