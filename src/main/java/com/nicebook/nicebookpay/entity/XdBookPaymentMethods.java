@@ -97,7 +97,7 @@ public class XdBookPaymentMethods implements Serializable {
     private String memo;
 
     @TableField(value = "partner_id")
-    private Integer partnerId;
+    private String partnerId;
 
     /**
      * 编码格式

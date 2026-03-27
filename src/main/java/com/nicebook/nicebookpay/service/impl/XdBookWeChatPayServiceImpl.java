@@ -33,6 +33,7 @@ import tools.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.time.OffsetDateTime;
@@ -76,7 +77,6 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookPaymentMethods
         int totalFen = toFen(order.getTotalPrice());
         String description = buildDescription(order);
 
-
         //        requireNonBlank(paymentMethods.getDeveloperId(), "appId");
         //        requireNonBlank(paymentMethods.getMerchantNo(), "mchId");
         //        requireNonBlank(paymentMethods.getMchSerialNo(), "mchSerialNo");
@@ -110,6 +110,11 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookPaymentMethods
         }
 
         String requestUrl = resolveRequestUrl(paymentMethods);
+        log.info("WeChat create order requestUrl={}, outTradeNo={}, totalFen={}, notifyUrl={}",
+                requestUrl,
+                outTradeNo,
+                totalFen,
+                buildNotifyUrl(paymentMethods.getPaymentCallbackAddress()));
         HttpPost httpPost = new HttpPost(requestUrl);
         httpPost.setHeader(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
         httpPost.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
@@ -211,7 +216,7 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookPaymentMethods
         requireNonBlank(paymentMethods.getMchSerialNo(), "mchSerialNo");
         requireNonBlank(paymentMethods.getPublicKey(), "apiV3key");
         requireNonBlank(paymentMethods.getPrivateKey(), "privateKey");
-        requireNonBlank(paymentMethods.getPaymentCallbackAddress(), "notifyUrl");
+        requireNonBlank(paymentMethods.getPaymentCallbackAddress(), "paymentCallbackAddress");
     }
 
     private String resolveOutTradeNo(XdBookOrder order) {
@@ -241,8 +246,16 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookPaymentMethods
     }
 
     private String resolveRequestUrl(XdBookPaymentMethods paymentMethods) {
-        String payUrl = paymentMethods.getPaymentCallbackAddress();
-        return isBlank(payUrl) ? WEIXIN_URL_H5 : payUrl;
+        String payUrl = paymentMethods.getPackageWx();
+        if (isBlank(payUrl)) {
+            return WEIXIN_URL_H5;
+        }
+        String trimmed = payUrl.trim();
+        if (!isAbsoluteHttpUrl(trimmed)) {
+            log.warn("Ignore invalid WeChat packageWx config: {}", trimmed);
+            return WEIXIN_URL_H5;
+        }
+        return trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
     }
 
     private String buildNotifyUrl(String baseUrl) {
@@ -290,5 +303,17 @@ public class XdBookWeChatPayServiceImpl extends ServiceImpl<XdBookPaymentMethods
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private boolean isAbsoluteHttpUrl(String value) {
+        try {
+            URI uri = URI.create(value);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+                    && !isBlank(host);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

@@ -18,13 +18,13 @@ import java.util.Map;
 
 @Slf4j
 @Service
-public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapper, XdBookPaymentMethods>  implements XdBookYspayService {
+public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapper, XdBookPaymentMethods>
+        implements XdBookYspayService {
 
     public static final String URL = "https://openapi.ysepay.com/gateway.do";
 
     @Autowired
     private XdBookPaymentMethodsMapper bookPaymentMethodsMapper;
-
 
     @Override
     public String createOrder(XdBookOrder xdBookOrder) {
@@ -33,9 +33,11 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
         }
 
         XdBookPaymentMethods paymentMethods = resolveYsPayConfig(xdBookOrder);
+        validateYsPayConfig(paymentMethods);
+
         Map<String, String> params = new LinkedHashMap<>();
         params.put("method", "ysepay.online.wap.directpay.createbyuser");
-        params.put("partner_id", String.valueOf(paymentMethods.getPartnerId()));
+        params.put("partner_id", paymentMethods.getPartnerId());
         params.put("timestamp", DateUtil.getDateNow());
         params.put("charset", paymentMethods.getCharSet());
         params.put("sign_type", paymentMethods.getSignType());
@@ -46,7 +48,6 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
         params.put("out_trade_no", xdBookOrder.getOrderid());
         params.put("shopdate", DateUtil.getDateFormat(new Date(), "yyyyMMdd"));
         params.put("subject", xdBookOrder.getHotelName());
-//        params.put("total_amount", String.valueOf(xdBookOrder.getPayprice()));
         params.put("total_amount", String.valueOf(xdBookOrder.getTotalPrice()));
         params.put("seller_id", paymentMethods.getSellerId());
         params.put("seller_name", paymentMethods.getSellerName());
@@ -77,20 +78,34 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
                     xdBookOrder.getOrderid(),
                     sanitizeParams(params),
                     e);
-            throw new RuntimeException("银盛下单失败：" + e.getMessage(), e);
+            throw new RuntimeException("银盛下单失败: " + e.getMessage(), e);
         }
     }
 
     private XdBookPaymentMethods resolveYsPayConfig(XdBookOrder order) {
         XdBookPaymentMethods paymentMethods = null;
         if (order != null && order.getParentid() != null) {
-            paymentMethods = bookPaymentMethodsMapper.selectOneByPaymentChannelsAndStatus("2","1002" );
+            paymentMethods = bookPaymentMethodsMapper.selectOneByPaymentChannelsAndStatus("2", "1002");
         }
 
         if (paymentMethods == null) {
             throw new RuntimeException("未找到银盛支付配置");
         }
         return paymentMethods;
+    }
+
+    private void validateYsPayConfig(XdBookPaymentMethods paymentMethods) {
+        requireNonBlank(paymentMethods.getCharSet(), "char_set");
+        requireNonBlank(paymentMethods.getSignType(), "sign_type");
+        requireNonBlank(paymentMethods.getPaymentCallbackAddress(), "payment_callback_address");
+        requireNonBlank(paymentMethods.getYsVersion(), "ys_version");
+        requireNonBlank(paymentMethods.getTranType(), "tran_type");
+        requireNonBlank(paymentMethods.getSellerId(), "seller_id");
+        requireNonBlank(paymentMethods.getSellerName(), "seller_name");
+        requireNonBlank(paymentMethods.getTimeoutExpress(), "timeout_express");
+        requireNonBlank(paymentMethods.getBusinessCode(), "business_code");
+        requireNonBlank(paymentMethods.getPrivateKeyPassword(), "private_key_password");
+        requireNonBlank(paymentMethods.getPrivateKeyFilePath(), "private_key_file_path");
     }
 
     private String buildAutoSubmitHtml(Map<String, String> params) {
@@ -135,5 +150,11 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
                 .replace("'", "&#39;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;");
+    }
+
+    private void requireNonBlank(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + "字段值是空白");
+        }
     }
 }

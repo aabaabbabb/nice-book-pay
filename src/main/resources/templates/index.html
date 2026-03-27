@@ -10,143 +10,136 @@
 <script src="/assets/js/zepto.min.js"></script>
 <script src="/assets/js/zepto.weui.js"></script>
 <script th:inline="javascript">
-	$(function() {
-		var orderId = [[${order != null ? order.orderId : null}]];
-		if (!orderId) {
-			return;
-		}
-		$(document).on("click", "#pay", function() {
-			var res = $("input[name='payment_method']:checked").val();
-			if (res == 0) {
-				window.location.href = "/api/wechatpay/toPrepay/" + orderId;
-			} else {
-				$("#yspayForm").submit();
-			}
-		});
-		$("input[name='payment_method']").click(function() {
-			var res = $(this).val();
-			if (res == 1) {
-				$("#pay").attr("style", "background:#108ee9");
-			} else {
-				$("#pay").removeAttr("style");
-			}
-		});
-	});
+    $(function() {
+        var orderId = [[${orderId}]];
+        if (!orderId) {
+            return;
+        }
+
+        $(document).on("click", "#pay", function() {
+            var res = $("input[name='payment_method']:checked").val();
+            if (res === "0") {
+                window.location.href = "/api/wechatpay/toPrepay/" + orderId;
+                return;
+            }
+            $("#yspayForm").submit();
+        });
+
+        $("input[name='payment_method']").on("click", function() {
+            var res = $(this).val();
+            if (res === "1") {
+                $("#pay").css("background", "#108ee9");
+                return;
+            }
+            $("#pay").removeAttr("style");
+        });
+    });
 </script>
 <style>
 .pay {
-	margin: 10px;
+    margin: 10px;
 }
 </style>
 </head>
 
 <body ontouchstart class="page-bg">
-	<form id="yspayForm" method="get" th:if="${orderId != null}" th:action="@{'/api/yspay/toPrepay/' + ${orderId}}"></form>
+    <form id="yspayForm"
+          method="get"
+          th:if="${orderId != null}"
+          th:action="@{/api/yspay/toPrepay/{orderId}(orderId=${orderId})}"></form>
 
-	<div th:if="${order == null}" class="weui-msg">
-		<div class="weui-msg__icon-area">
-			<i class="weui-icon-warn weui-icon_msg"></i>
-		</div>
-		<div class="weui-msg__text-area">
-			<h2 class="weui-msg__title">订单不存在</h2>
-			<p class="weui-msg__desc">请从正确的订单链接进入支付页面。</p>
-		</div>
-	</div>
+    <div th:if="${order == null}" class="weui-msg">
+        <div class="weui-msg__icon-area">
+            <i class="weui-icon-warn weui-icon_msg"></i>
+        </div>
+        <div class="weui-msg__text-area">
+            <h2 class="weui-msg__title">订单不存在</h2>
+            <p class="weui-msg__desc">请从正确的订单链接进入支付页面。</p>
+        </div>
+    </div>
 
-	<div th:if="${order != null}">
-		<div class="page-hd">
-			<h1 class="page-hd-title" th:text="${order.hotelName}">Hotel</h1>
-			<p class="page-hd-desc">地址：<span th:text="${order.address}">-</span></p>
-		</div>
+    <div th:if="${order != null}">
+        <div class="page-hd">
+            <h1 class="page-hd-title" th:text="${order.hotelName}">Hotel</h1>
+            <p class="page-hd-desc">地址：<span th:text="${order.address}">-</span></p>
+        </div>
 
-		<div class="page-bd" style="background-color: #F8F8F8">
-			<div class="weui-form-preview">
-				<div class="weui-panel weui-panel_access">
-					<div class="weui-panel__hd">订单详情</div>
-					<div class="weui-panel__bd">
-						<div class="weui-form-preview__bd">
-							<div class="weui-form-preview__item">
-								<label class="weui-form-preview__label">房型</label>
-								<span class="weui-form-preview__value" th:text="${order.roomName}">-</span>
-							</div>
-							<div class="weui-form-preview__item">
-								<label class="weui-form-preview__label">房间数</label>
-								<span class="weui-form-preview__value">
-									<span th:text="${order.roomNum}">0</span> 间
-								</span>
-							</div>
-							<div class="weui-form-preview__item">
-								<label class="weui-form-preview__label">入住/离店时间</label>
-								<span class="weui-form-preview__value" th:text="|${order.checkIn} - ${order.checkOut}|">-</span>
-							</div>
-							<div class="weui-form-preview__item">
-								<label class="weui-form-preview__label">姓名</label>
-								<span class="weui-form-preview__value" th:text="${order.guest}">-</span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
+        <div class="page-bd" style="background-color: #F8F8F8">
+            <div class="weui-form-preview">
+                <div class="weui-panel weui-panel_access">
+                    <div class="weui-panel__hd">订单详情</div>
+                    <div class="weui-panel__bd">
+                        <div class="weui-form-preview__bd">
+                            <div class="weui-form-preview__item">
+                                <label class="weui-form-preview__label">房型</label>
+                                <span class="weui-form-preview__value" th:text="${order.roomName}">-</span>
+                            </div>
+                            <div class="weui-form-preview__item">
+                                <label class="weui-form-preview__label">房间数</label>
+                                <span class="weui-form-preview__value">
+                                    <span th:text="${order.roomNum}">0</span> 间
+                                </span>
+                            </div>
+                            <div class="weui-form-preview__item">
+                                <label class="weui-form-preview__label">入住/离店时间</label>
+                                <span class="weui-form-preview__value" th:text="|${order.checkIn} - ${order.checkOut}|">-</span>
+                            </div>
+                            <div class="weui-form-preview__item">
+                                <label class="weui-form-preview__label">姓名</label>
+                                <span class="weui-form-preview__value" th:text="${order.guest}">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-			<div class="weui-panel" style="margin-top:0px">
-				<div class="weui-panel__hd">支付方式</div>
-				<div class="weui-panel__bd">
-					<div class="weui-cells_radio">
-						<label class="weui-cell weui-check__label" for="x12">
-							<div class="weui-cell__hd">
-								<img src="/assets/images/zfb.png" alt="" style="width: 20px; margin-right: 5px; display: block">
-							</div>
-							<div class="weui-cell__bd">
-								<p>支付宝</p>
-							</div>
-							<div class="weui-cell__ft">
-								<input name="payment_method" value="1" class="weui-check" id="x12" type="radio" checked="checked">
-								<span class="weui-icon-checked"></span>
-							</div>
-						</label>
+            <div class="weui-panel" style="margin-top:0">
+                <div class="weui-panel__hd">支付方式</div>
+                <div class="weui-panel__bd">
+                    <div class="weui-cells_radio">
+                        <label class="weui-cell weui-check__label" for="x12">
+                            <div class="weui-cell__hd">
+                                <img src="/assets/images/zfb.png" alt="" style="width:20px; margin-right:5px; display:block">
+                            </div>
+                            <div class="weui-cell__bd">
+                                <p>支付宝</p>
+                            </div>
+                            <div class="weui-cell__ft">
+                                <input name="payment_method" value="1" class="weui-check" id="x12" type="radio" checked="checked">
+                                <span class="weui-icon-checked"></span>
+                            </div>
+                        </label>
 
-						<label class="weui-cell weui-check__label" for="x11">
-							<div class="weui-cell__hd">
-								<img src="/assets/images/wx.png" alt="" style="width: 20px; margin-right: 5px; display: block">
-							</div>
-							<div class="weui-cell__bd">
-								<p>微信</p>
-							</div>
-							<div class="weui-cell__ft">
-								<input class="weui-check" name="payment_method" value="0" id="x11" type="radio">
-								<span class="weui-icon-checked"></span>
-							</div>
-						</label>
-					</div>
-				</div>
-			</div>
+                        <label class="weui-cell weui-check__label" for="x11">
+                            <div class="weui-cell__hd">
+                                <img src="/assets/images/wx.png" alt="" style="width:20px; margin-right:5px; display:block">
+                            </div>
+                            <div class="weui-cell__bd">
+                                <p>微信</p>
+                            </div>
+                            <div class="weui-cell__ft">
+                                <input class="weui-check" name="payment_method" value="0" id="x11" type="radio">
+                                <span class="weui-icon-checked"></span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
 
-			<div class="weui-footer weui-footer_fixed-bottom">
-				<div class="page-bd-15">
-					<!--<a th:if="${order.payState == 3}"
-					   class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成支付(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
-					</a>
-					<a th:if="${order.payState == 4}"
-					   class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成退款(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
-					</a>
-					<a th:if="${order.payState == 2 or order.payState == 1}"
-					   class="weui-btn weui-btn_primary pay" href="javascript:" id="pay" style="background:#108ee9">确认支付(<font size="2">￥</font><span th:text="${order.payprice}">0</span>)
-					</a>-->
-					<a th:if="${order.payState == 3}"
-					   class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成支付(<font size="2">￥</font><span th:text="${order.totalPrice}">0</span>)
-					</a>
-
-
-					<a th:if="${order.payState == 4}"
-					   class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成退款(<font size="2">￥</font><span th:text="${order.totalPrice}">0</span>)
-					</a>
-					<a th:if="${order.payState == 2 or order.payState == 1}"
-					   class="weui-btn weui-btn_primary pay" href="javascript:" id="pay" style="background:#108ee9">确认支付(<font size="2">￥</font><span th:text="${order.totalPrice}">0</span>)
-					</a>
-				</div>
-			</div>
-		</div>
-	</div>
-
+            <div class="weui-footer weui-footer_fixed-bottom">
+                <div class="page-bd-15">
+                    <a th:if="${order.payState == 3}"
+                       class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成支付(￥<span th:text="${order.totalPrice}">0</span>)
+                    </a>
+                    <a th:if="${order.payState == 4}"
+                       class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成退款(￥<span th:text="${order.totalPrice}">0</span>)
+                    </a>
+                    <a th:if="${order.payState == 2 or order.payState == 1}"
+                       class="weui-btn weui-btn_primary pay" href="javascript:" id="pay" style="background:#108ee9">确认支付(￥<span th:text="${order.totalPrice}">0</span>)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

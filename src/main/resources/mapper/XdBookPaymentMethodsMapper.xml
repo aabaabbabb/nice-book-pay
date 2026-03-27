@@ -18,7 +18,7 @@
     <result column="create_time" jdbcType="INTEGER" property="createTime" />
     <result column="alter_time" jdbcType="INTEGER" property="alterTime" />
     <result column="memo" jdbcType="VARCHAR" property="memo" />
-    <result column="partner_id" jdbcType="INTEGER" property="partnerId" />
+    <result column="partner_id" jdbcType="VARCHAR" property="partnerId" />
     <result column="char_set" jdbcType="VARCHAR" property="charSet" />
     <result column="tran_type" jdbcType="VARCHAR" property="tranType" />
     <result column="ys_version" jdbcType="VARCHAR" property="ysVersion" />

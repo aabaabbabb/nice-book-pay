@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.nio.charset.StandardCharsets;
@@ -59,7 +60,7 @@ public class YsPayController {
         } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                     .contentType(MediaType.valueOf("text/plain;charset=UTF-8"))
-                    .body("银盛下单失败：" + ex.getMessage());
+                    .body("银盛下单失败: " + ex.getMessage());
         }
     }
 
@@ -76,13 +77,21 @@ public class YsPayController {
     }
 
     @GetMapping("/showReturn")
-    public String showReturn(HttpServletRequest request, Model model) {
-        return handleReturn(request, model);
+    public String showReturn(HttpServletRequest request) {
+        return handleReturn(request);
     }
 
     @GetMapping("/return")
-    public String returnPage(HttpServletRequest request, Model model) {
-        return handleReturn(request, model);
+    public String returnPage(HttpServletRequest request) {
+        return handleReturn(request);
+    }
+
+    @GetMapping("/finish")
+    public String finish(@RequestParam("id") Integer id, Model model) {
+        XdBookOrder order = orderService.getById(id);
+        model.addAttribute("order", order);
+        model.addAttribute("orderId", order == null ? String.valueOf(id) : order.getOrderid());
+        return "result";
     }
 
     private ResponseEntity<String> handleNotify(HttpServletRequest request) {
@@ -97,7 +106,7 @@ public class YsPayController {
         return plainText("fail");
     }
 
-    private String handleReturn(HttpServletRequest request, Model model) {
+    private String handleReturn(HttpServletRequest request) {
         XdBookOrder order = null;
         try {
             order = handleSuccessPayment(request);
@@ -112,9 +121,10 @@ public class YsPayController {
             }
         }
 
-        model.addAttribute("order", order);
-        model.addAttribute("orderId", order == null ? null : order.getOrderid());
-        return "result";
+        if (order == null || order.getId() == null) {
+            return "redirect:/";
+        }
+        return "redirect:/api/yspay/finish?id=" + order.getId();
     }
 
     private XdBookOrder handleSuccessPayment(HttpServletRequest request) {

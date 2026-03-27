@@ -60,12 +60,12 @@ public class WeChatController {
 
     @ResponseBody
     @GetMapping("/toPrepay/{id}")
-    public ResponseEntity<String> toPrepay(@PathVariable("id") Integer orderId, HttpServletRequest request) {
+    public ResponseEntity<String> toPrepay(@PathVariable("id") String orderId, HttpServletRequest request) {
         if (orderId == null) {
             return ResponseEntity.badRequest().body("订单号不能为空");
         }
 
-        XdBookOrder order = orderService.getById(orderId);
+        XdBookOrder order = orderService.getByOrderId(orderId);
         if (order == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("订单不存在");
         }
@@ -133,7 +133,7 @@ public class WeChatController {
         model.addAttribute("orderId", order == null ? String.valueOf(id) : resolveOrderId(order));
 
         if (order != null && Integer.valueOf(PAY_STATE_SUCCESS).equals(order.getPayState())) {
-            recordFeedback(order, FEEDBACK_FINISH_CONTENT);
+            recordFeedback(order, "微信支付结果：成功;收款商户号" + order.getMchid() + ",支付金额:" + order.getTotalPrice() / 100 + "元");
         }
 
         return "result";
