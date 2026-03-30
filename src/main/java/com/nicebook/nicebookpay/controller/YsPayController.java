@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Objects;
 
@@ -147,6 +148,8 @@ public class YsPayController {
 
             XdBookFeedback feedback = new XdBookFeedback();
             feedback.setCreateDatetime(new Date());
+            long seconds = Instant.now().getEpochSecond();
+            feedback.setCreateTime((int) seconds);
             feedback.setAid(3);
             feedback.setUName("客户");
             feedback.setContent("支付宝支付结果：成功；支付金额：" + totalAmount + "元");

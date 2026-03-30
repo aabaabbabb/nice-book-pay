@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
@@ -133,7 +134,7 @@ public class WeChatController {
         model.addAttribute("orderId", order == null ? String.valueOf(id) : resolveOrderId(order));
 
         if (order != null && Integer.valueOf(PAY_STATE_SUCCESS).equals(order.getPayState())) {
-            recordFeedback(order, "微信支付结果：成功;收款商户号" + order.getMchid() + ",支付金额:" + order.getTotalPrice() / 100 + "元");
+            recordFeedback(order, "微信支付结果："+FEEDBACK_FINISH_CONTENT+";收款商户号" + order.getMchid() + ",支付金额:" + order.getTotalPrice() + "元");
         }
 
         return "result";
@@ -163,6 +164,8 @@ public class WeChatController {
         }
         XdBookFeedback feedback = new XdBookFeedback();
         feedback.setCreateDatetime(new Date());
+        long seconds = Instant.now().getEpochSecond();
+        feedback.setCreateTime((int) seconds);
         feedback.setAid(FEEDBACK_USER_ID);
         feedback.setUName(FEEDBACK_USER_NAME);
         feedback.setContent(content);
