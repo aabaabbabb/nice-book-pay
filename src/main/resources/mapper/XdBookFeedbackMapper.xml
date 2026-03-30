@@ -24,8 +24,8 @@
     </sql>
 
     <insert id="insertFeedback" parameterType="com.nicebook.nicebookpay.entity.XdBookFeedback">
-        INSERT INTO xd_book_feedback (order_id, content, create_datetime, u_name, aid)
-        VALUES (#{orderId}, #{content}, #{createDatetime}, #{UName}, #{aid})
+        INSERT INTO xd_book_feedback (order_id, content, create_datetime, u_name, aid, create_time)
+        VALUES (#{orderId}, #{content}, #{createDatetime}, #{UName}, #{aid},#{createTime})
     </insert>
 
     <select id="selectByOrderId" resultMap="BaseResultMap">

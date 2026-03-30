@@ -2,10 +2,9 @@ package com.nicebook.nicebookpay.controller;
 
 import com.nicebook.nicebookpay.entity.XdBookFeedback;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
-import com.nicebook.nicebookpay.service.LockService;
-import com.nicebook.nicebookpay.service.XdBookFeedbackService;
-import com.nicebook.nicebookpay.service.XdBookOrderService;
-import com.nicebook.nicebookpay.service.XdBookWeChatPayService;
+import com.nicebook.nicebookpay.entity.XdBookPaymentMethods;
+import com.nicebook.nicebookpay.mapper.XdBookPaymentMethodsMapper;
+import com.nicebook.nicebookpay.service.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +56,9 @@ public class WeChatController {
     private XdBookFeedbackService bookFeedbackService;
 
     @Autowired
+    private XdBookPaymentMethodsMapper bookPaymentMethodsMapper;
+
+    @Autowired
     private LockService lockService;
 
     @ResponseBody
@@ -90,8 +92,9 @@ public class WeChatController {
         if (isBlank(h5Url)) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("微信支付链接为空");
         }
+        XdBookPaymentMethods paymentMethods = bookPaymentMethodsMapper.selectOneByPaymentChannelsAndStatus("1","1002" );
 
-        String redirectUrl = buildFinishUrl(order, request);
+        String redirectUrl = buildFinishUrl(order, paymentMethods);
         String target = h5Url + "&redirect_url=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8);
         log.info("微信重定向地址={}", target);
         return redirect(target);
@@ -202,14 +205,13 @@ public class WeChatController {
         return "/pay/" + orderId;
     }
 
-    private String buildFinishUrl(XdBookOrder order, HttpServletRequest request) {
+    private String buildFinishUrl(XdBookOrder order, XdBookPaymentMethods paymentMethods) {
         Integer id = order == null ? null : order.getId();
         if (id == null) {
             return "/";
         }
         String path = "/api/wechatpay/finish?id=" + id;
-        String baseUrl = resolveRequestBaseUrl(request);
-        return isBlank(baseUrl) ? path : baseUrl + path;
+        return isBlank(paymentMethods.getPaymentCallbackAddress()) ? path : paymentMethods.getPaymentCallbackAddress() + path;
     }
 
     private String resolveRequestBaseUrl(HttpServletRequest request) {
