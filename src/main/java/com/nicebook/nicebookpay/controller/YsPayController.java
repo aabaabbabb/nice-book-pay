@@ -55,6 +55,15 @@ public class YsPayController {
         }
         try {
             String html = srv.createOrder(order);
+            XdBookFeedback feedback = new XdBookFeedback();
+            feedback.setCreateDatetime(new Date());
+            long seconds = Instant.now().getEpochSecond();
+            feedback.setCreateTime((int) seconds);
+            feedback.setAid(3);
+            feedback.setUName("客户");
+            feedback.setContent("拉起支付宝支付");
+            feedback.setOrderId(order.getOrderid());
+            feedbackService.insertFeedback(feedback);
             return ResponseEntity.ok()
                     .contentType(MediaType.valueOf("text/html;charset=UTF-8"))
                     .body(html);
