@@ -123,6 +123,10 @@ public class WeChatController {
                 return success();
             }
             log.info("[{}] 支付成功，订单号={}", traceId, orderId);
+            XdBookOrder order = orderService.getByOrderId(orderId);
+            if (order != null && Integer.valueOf(PAY_STATE_SUCCESS).equals(order.getPayState())) {
+                recordFeedback(order, "微信支付结果："+FEEDBACK_FINISH_CONTENT+";收款商户号" + order.getMchid() + ",支付金额:" + order.getTotalPrice() + "元");
+            }
             return success();
         } catch (Exception e) {
             log.error("[{}] 回调通知失败", traceId, e);
@@ -136,9 +140,9 @@ public class WeChatController {
         model.addAttribute("order", order);
         model.addAttribute("orderId", order == null ? String.valueOf(id) : resolveOrderId(order));
 
-        if (order != null && Integer.valueOf(PAY_STATE_SUCCESS).equals(order.getPayState())) {
-            recordFeedback(order, "微信支付结果："+FEEDBACK_FINISH_CONTENT+";收款商户号" + order.getMchid() + ",支付金额:" + order.getTotalPrice() + "元");
-        }
+//        if (order != null && Integer.valueOf(PAY_STATE_SUCCESS).equals(order.getPayState())) {
+//            recordFeedback(order, "微信支付结果："+FEEDBACK_FINISH_CONTENT+";收款商户号" + order.getMchid() + ",支付金额:" + order.getTotalPrice() + "元");
+//        }
 
         return "result";
     }
