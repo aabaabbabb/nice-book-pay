@@ -4,6 +4,7 @@ import com.nicebook.nicebookpay.entity.XdBookFeedback;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
 import com.nicebook.nicebookpay.service.XdBookFeedbackService;
 import com.nicebook.nicebookpay.service.XdBookOrderService;
+import com.nicebook.nicebookpay.utils.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -27,6 +28,9 @@ public class PayPageController {
     @GetMapping("/pay/{orderid}")
     public String payPage(@PathVariable("orderid") String orderId, Model model) {
         XdBookOrder order = orderService.getByOrderId(orderId);
+        if (order == null) {
+            return "index";
+        }
         XdBookFeedback feedback = new XdBookFeedback();
         feedback.setCreateDatetime(new Date());
         long seconds = Instant.now().getEpochSecond();
@@ -36,9 +40,7 @@ public class PayPageController {
         feedback.setContent("跳转到首页");
         feedback.setOrderId(order.getOrderid());
         feedbackService.insertFeedback(feedback);
-        if (order == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在");
-        }
+
         model.addAttribute("order", order);
         model.addAttribute("orderId", orderId);
         return "index";

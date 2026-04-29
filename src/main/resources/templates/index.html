@@ -9,32 +9,37 @@
 
 <script src="/assets/js/zepto.min.js"></script>
 <script src="/assets/js/zepto.weui.js"></script>
-<script th:inline="javascript">
-    $(function() {
-        var orderId = [[${orderId}]];
-        if (!orderId) {
-            return;
-        }
+    <script th:inline="javascript">
+        $(function() {
+            var orderId = /*[[${orderId}]]*/ "";
 
-        $(document).on("click", "#pay", function() {
-            var res = $("input[name='payment_method']:checked").val();
-            if (res === "0") {
-                window.location.href = "/api/wechatpay/toPrepay/" + orderId;
+            if (!orderId) {
                 return;
             }
-            $("#yspayForm").submit();
-        });
 
-        $("input[name='payment_method']").on("click", function() {
-            var res = $(this).val();
-            if (res === "1") {
-                $("#pay").css("background", "#108ee9");
-                return;
-            }
-            $("#pay").removeAttr("style");
+            $(document).on("click", "#pay", function() {
+                var res = $("input[name='payment_method']:checked").val();
+
+                if (res === "0") {
+                    window.location.href = "/api/wechatpay/toPrepay/" + orderId;
+                    return;
+                }
+
+                $("#yspayForm").submit();
+            });
+
+            $("input[name='payment_method']").on("click", function() {
+                var res = $(this).val();
+
+                if (res === "1") {
+                    $("#pay").css("background", "#108ee9");
+                    return;
+                }
+
+                $("#pay").removeAttr("style");
+            });
         });
-    });
-</script>
+    </script>
 <style>
 .pay {
     margin: 10px;
@@ -48,6 +53,16 @@
           th:if="${orderId != null}"
           th:action="@{/api/yspay/toPrepay/{orderId}(orderId=${orderId})}"></form>
 
+    <!-- order 为空时，只有访问根路径才跳转首页 -->
+    <script th:if="${order == null}">
+        var path = window.location.pathname;
+
+        if (path === "/" || path === "") {
+            window.location.replace("https://www.tetuijiudian.com/home");
+        }
+    </script>
+
+    <!-- order 为空，并且不是根路径时，显示订单不存在 -->
     <div th:if="${order == null}" class="weui-msg">
         <div class="weui-msg__icon-area">
             <i class="weui-icon-warn weui-icon_msg"></i>
