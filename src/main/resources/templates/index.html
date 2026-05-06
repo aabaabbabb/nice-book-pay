@@ -112,19 +112,6 @@
                 <div class="weui-panel__hd">支付方式</div>
                 <div class="weui-panel__bd">
                     <div class="weui-cells_radio">
-                        <label class="weui-cell weui-check__label" for="x12">
-                            <div class="weui-cell__hd">
-                                <img src="/assets/images/zfb.png" alt="" style="width:20px; margin-right:5px; display:block">
-                            </div>
-                            <div class="weui-cell__bd">
-                                <p>支付宝</p>
-                            </div>
-                            <div class="weui-cell__ft">
-                                <input name="payment_method" value="1" class="weui-check" id="x12" type="radio" checked="checked">
-                                <span class="weui-icon-checked"></span>
-                            </div>
-                        </label>
-
                         <label class="weui-cell weui-check__label" for="x11">
                             <div class="weui-cell__hd">
                                 <img src="/assets/images/wx.png" alt="" style="width:20px; margin-right:5px; display:block">
@@ -133,10 +120,24 @@
                                 <p>微信</p>
                             </div>
                             <div class="weui-cell__ft">
-                                <input class="weui-check" name="payment_method" value="0" id="x11" type="radio">
+                                <input class="weui-check" name="payment_method" value="0" id="x11" type="radio" checked="checked">
                                 <span class="weui-icon-checked"></span>
                             </div>
                         </label>
+
+                        <label class="weui-cell weui-check__label" for="x12">
+                            <div class="weui-cell__hd">
+                                <img src="/assets/images/zfb.png" alt="" style="width:20px; margin-right:5px; display:block">
+                            </div>
+                            <div class="weui-cell__bd">
+                                <p>支付宝</p>
+                            </div>
+                            <div class="weui-cell__ft">
+                                <input name="payment_method" value="1" class="weui-check" id="x12" type="radio" >
+                                <span class="weui-icon-checked"></span>
+                            </div>
+                        </label>
+
                     </div>
                 </div>
             </div>
@@ -150,7 +151,7 @@
                        class="weui-btn weui-btn_disabled weui-btn_warn pay">订单已经完成退款(￥<span th:text="${order.totalPrice}">0</span>)
                     </a>
                     <a th:if="${order.payState == 2 or order.payState == 1}"
-                       class="weui-btn weui-btn_primary pay" href="javascript:" id="pay" style="background:#108ee9">确认支付(￥<span th:text="${order.totalPrice}">0</span>)
+                       class="weui-btn weui-btn_primary pay" href="javascript:" id="pay">确认支付(￥<span th:text="${order.totalPrice}">0</span>)
                     </a>
                 </div>
             </div>
