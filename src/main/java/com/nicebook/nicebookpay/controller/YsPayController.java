@@ -7,6 +7,7 @@ import com.nicebook.nicebookpay.service.XdBookFeedbackService;
 import com.nicebook.nicebookpay.service.XdBookOrderService;
 import com.nicebook.nicebookpay.service.XdBookYspayService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,16 +16,20 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 @Controller
 @RequestMapping({"/api/yspay", "/yspay"})
 public class YsPayController {
@@ -74,24 +79,24 @@ public class YsPayController {
         }
     }
 
-    @PostMapping("/notify")
+    @RequestMapping(value = "/notify", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public ResponseEntity<String> notify(HttpServletRequest request) {
         return handleNotify(request);
     }
 
-    @PostMapping("/showNotify")
+    @RequestMapping(value = "/showNotify", method = {RequestMethod.GET, RequestMethod.POST})
     @ResponseBody
     public ResponseEntity<String> showNotify(HttpServletRequest request) {
         return handleNotify(request);
     }
 
-    @GetMapping("/showReturn")
+    @RequestMapping(value = "/showReturn", method = {RequestMethod.GET, RequestMethod.POST})
     public String showReturn(HttpServletRequest request) {
         return handleReturn(request);
     }
 
-    @GetMapping("/return")
+    @RequestMapping(value = "/return", method = {RequestMethod.GET, RequestMethod.POST})
     public String returnPage(HttpServletRequest request) {
         return handleReturn(request);
     }
@@ -105,6 +110,10 @@ public class YsPayController {
     }
 
     private ResponseEntity<String> handleNotify(HttpServletRequest request) {
+        log.info("收到银盛异步回调：请求方法={}，请求路径={}，参数={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                requestParams(request));
         try {
             XdBookOrder order = handleSuccessPayment(request);
             if (order != null) {
@@ -117,6 +126,10 @@ public class YsPayController {
     }
 
     private String handleReturn(HttpServletRequest request) {
+        log.info("收到银盛同步返回：请求方法={}，请求路径={}，参数={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                requestParams(request));
         XdBookOrder order = null;
         try {
             order = handleSuccessPayment(request);
@@ -145,6 +158,7 @@ public class YsPayController {
 
         XdBookOrder order = orderService.getByOrderId(outTradeNo);
         if (order == null) {
+            log.warn("银盛回调未找到订单：银盛订单号out_trade_no={}，参数={}", outTradeNo, requestParams(request));
             return null;
         }
 
@@ -168,6 +182,12 @@ public class YsPayController {
             return orderService.getById(order.getId());
         }
 
+        log.info("银盛回调未更新订单：订单号={}，当前支付状态={}，银盛交易状态={}，银盛交易号={}，回调金额={}",
+                outTradeNo,
+                order.getPayState(),
+                tradeStatus,
+                tradeNo,
+                totalAmount);
         return order;
     }
 
@@ -189,5 +209,16 @@ public class YsPayController {
             return 0D;
         }
         return Double.valueOf(value);
+    }
+
+    private Map<String, String> requestParams(HttpServletRequest request) {
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        if (parameterMap == null || parameterMap.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> params = new LinkedHashMap<>();
+        parameterMap.forEach((key, values) -> params.put(key, values == null || values.length == 0 ? "" : values[0]));
+        return params;
     }
 }

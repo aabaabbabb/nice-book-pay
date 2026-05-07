@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>支付宝支付跳转</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" th:content="'0;url=' + @{/api/yspay/raw/{id}(id=${orderId})}" />
+<meta http-equiv="refresh" th:content="'1;url=' + @{/api/yspay/raw/{id}(id=${orderId})}" />
 <style>
 body { font-family: sans-serif; padding: 24px; }
 </style>
@@ -13,7 +13,7 @@ body { font-family: sans-serif; padding: 24px; }
 <p>正在跳转到支付宝支付...</p>
 <p>如果没有自动跳转，请<a th:href="@{/api/yspay/raw/{id}(id=${orderId})}">点击这里</a>继续。</p>
 <script th:inline="javascript">
-  window.location.replace([[${'/api/yspay/raw/' + orderId}]]);
+  window.location.replace(/*[[@{/api/yspay/raw/{id}(id=${orderId})}]]*/ "");
 </script>
 </body>
 </html>

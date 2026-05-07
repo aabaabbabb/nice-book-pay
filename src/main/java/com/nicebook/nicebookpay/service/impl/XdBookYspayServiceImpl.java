@@ -41,8 +41,8 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
         params.put("timestamp", DateUtil.getDateNow());
         params.put("charset", paymentMethods.getCharSet());
         params.put("sign_type", paymentMethods.getSignType());
-        params.put("notify_url", paymentMethods.getPaymentCallbackAddress() + "/yspay/showNotify");
-        params.put("return_url", paymentMethods.getPaymentCallbackAddress() + "/yspay/showReturn");
+        params.put("notify_url", buildCallbackUrl(paymentMethods.getPaymentCallbackAddress(), "/yspay/showNotify"));
+        params.put("return_url", buildCallbackUrl(paymentMethods.getPaymentCallbackAddress(), "/yspay/showReturn"));
         params.put("version", paymentMethods.getYsVersion());
         params.put("tran_type", paymentMethods.getTranType());
         params.put("out_trade_no", xdBookOrder.getOrderid());
@@ -117,7 +117,7 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
         sbHtml.append("<meta name='viewport' content='width=device-width,initial-scale=1' />");
         sbHtml.append("<title>银盛支付跳转</title>");
         sbHtml.append("</head><body>");
-        sbHtml.append("<form style='display:none;' id='topay' method='post' action='").append(URL).append("'>");
+        sbHtml.append("<form id='topay' method='post' accept-charset='UTF-8' action='").append(URL).append("'>");
         for (Map.Entry<String, String> entry : params.entrySet()) {
             sbHtml.append("<input type='hidden' name='")
                     .append(escapeHtml(entry.getKey()))
@@ -125,9 +125,10 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
                     .append(escapeHtml(entry.getValue()))
                     .append("'/>");
         }
-        sbHtml.append("</form>");
         sbHtml.append("<p>正在跳转到银盛支付...</p>");
-        sbHtml.append("<script>document.getElementById('topay').submit();</script>");
+        sbHtml.append("<button type='submit'>继续支付</button>");
+        sbHtml.append("</form>");
+        sbHtml.append("<script>window.onload=function(){document.getElementById('topay').submit();};</script>");
         sbHtml.append("</body></html>");
         return sbHtml.toString();
     }
@@ -138,6 +139,11 @@ public class XdBookYspayServiceImpl extends ServiceImpl<XdBookPaymentMethodsMapp
             copy.put("sign", "***");
         }
         return copy;
+    }
+
+    private String buildCallbackUrl(String baseUrl, String path) {
+        String trimmedBaseUrl = baseUrl.trim();
+        return trimmedBaseUrl.endsWith("/") ? trimmedBaseUrl.substring(0, trimmedBaseUrl.length() - 1) + path : trimmedBaseUrl + path;
     }
 
     private String escapeHtml(String value) {
