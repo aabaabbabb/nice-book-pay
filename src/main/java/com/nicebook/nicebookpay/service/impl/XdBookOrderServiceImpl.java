@@ -7,6 +7,8 @@ import com.nicebook.nicebookpay.service.XdBookOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 /**
 * @author Administrator
 * @description 针对表【xd_book_order】的数据库操作Service实现
@@ -37,7 +39,7 @@ public class XdBookOrderServiceImpl extends ServiceImpl<XdBookOrderMapper, XdBoo
     }
 
     @Override
-    public int updatePaySuccess(String orderId, String transactionId) {
-        return bookOrderMapper.updatePaySuccess(orderId,transactionId);
+    public int updatePaySuccess(String orderId, String transactionId, Date paymentTime) {
+        return bookOrderMapper.updatePaySuccess(orderId, transactionId, paymentTime);
     }
 }

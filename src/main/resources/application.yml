@@ -5,7 +5,7 @@ spring:
   application:
     name: nice-book-pay
   datasource:
-    url: jdbc:mysql://122.114.58.185:3306/book?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    url: jdbc:mysql://62.234.21.225:3306/book?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
     username: nice
     password: KPenJrhhxDAMHHdj
     driver-class-name: com.mysql.cj.jdbc.Driver

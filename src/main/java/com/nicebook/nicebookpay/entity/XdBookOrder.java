@@ -128,6 +128,7 @@ public class XdBookOrder implements Serializable {
 
     private Integer createTime;
     private Integer alterTime;
+    private Date paymentTime;
 
     private BigDecimal totalCost;
 

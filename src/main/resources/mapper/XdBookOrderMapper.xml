@@ -96,6 +96,7 @@
             <result property="customerId" column="customer_id" />
             <result property="createTime" column="create_time" />
             <result property="alterTime" column="alter_time" />
+            <result property="paymentTime" column="payment_time" />
             <result property="totalCost" column="total_cost" />
             <result property="sendSms" column="send_sms" />
             <result property="isGrabbing" column="is_grabbing" />
@@ -122,7 +123,7 @@
         cardNo,mergeId,payment_method,payment_send,bodyCard,
         tixing,gaodeOrderNum,gaodeState,bookingAccountId,bookingRealName,
         payer,sellerid,ret,sub_msg,seller_id,
-        order_status,aid,customer_id,create_time,alter_time,
+        order_status,aid,customer_id,create_time,alter_time,payment_time,
         total_cost,send_sms,is_grabbing,contact,contact_phone,
         source
     </sql>
@@ -164,6 +165,7 @@
             <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
             <if test="guid != null">guid = #{guid},</if>
             <if test="alterTime != null">alter_time = #{alterTime},</if>
+            <if test="paymentTime != null">payment_time = #{paymentTime},</if>
         </set>
         WHERE id = #{id}
     </update>

@@ -6,6 +6,8 @@ import com.nicebook.nicebookpay.entity.XdBookOrder;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.Date;
+
 /**
 * @author Administrator
 * @description 针对表【xd_book_order】的数据库操作Mapper
@@ -19,11 +21,14 @@ public interface XdBookOrderMapper extends BaseMapper<XdBookOrder> {
     @Update("""
         UPDATE xd_book_order
         SET pay_state = 3,
-            transactionid = #{transactionId}
+            transactionid = #{transactionId},
+            payment_time = #{paymentTime}
         WHERE orderId = #{orderId}
         AND pay_state = 2
     """)
-    int updatePaySuccess(@Param("orderId") String orderId, @Param("transactionId") String transactionId);
+    int updatePaySuccess(@Param("orderId") String orderId,
+                         @Param("transactionId") String transactionId,
+                         @Param("paymentTime") Date paymentTime);
 }
 
 

@@ -117,7 +117,7 @@ public class WeChatController {
             int total = node.path("amount").path("payer_total").asInt();
             log.info("[{}] 微信支付金额={}", traceId, total);
 
-            int updated = orderService.updatePaySuccess(orderId, transactionId);
+            int updated = orderService.updatePaySuccess(orderId, transactionId, new Date());
             if (updated == 0) {
                 log.info("[{}] 回调已处理", traceId);
                 return success();

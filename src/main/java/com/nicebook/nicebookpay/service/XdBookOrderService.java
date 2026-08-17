@@ -3,6 +3,8 @@ package com.nicebook.nicebookpay.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.nicebook.nicebookpay.entity.XdBookOrder;
 
+import java.util.Date;
+
 /**
 * @author Administrator
 * @description 针对表【xd_book_order】的数据库操作Service
@@ -14,5 +16,5 @@ public interface XdBookOrderService extends IService<XdBookOrder> {
 
     XdBookOrder getById(Integer id);
     boolean updateById(XdBookOrder order);
-    int updatePaySuccess(String orderId, String transactionId);
+    int updatePaySuccess(String orderId, String transactionId, Date paymentTime);
 }

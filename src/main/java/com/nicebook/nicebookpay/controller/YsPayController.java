@@ -167,6 +167,7 @@ public class YsPayController {
             order.setPaymentId(PayConstant.YS_PAY);
             order.setTransactionid(tradeNo);
             order.setPayState(PayConstant.PAY_YES);
+            order.setPaymentTime(new Date());
             orderService.updateById(order);
 
             XdBookFeedback feedback = new XdBookFeedback();
